@@ -1,9 +1,13 @@
+import 'package:appsech/df.dart';
+import 'package:appsech/grifo.dart';
+import 'package:appsech/ptari.dart';
+import 'package:appsech/tratamiento.dart';
 import 'package:flutter/material.dart';
 
 import 'package:appsech/almacen.dart';
 import 'package:appsech/tableview.dart';
-import 'package:appsech/grafica.dart';
 import 'package:appsech/recepcion.dart';
+import 'package:appsech/ingreso_planta.dart';
 import 'package:appsech/widgets/widgets.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -37,15 +41,20 @@ class HomeScreen extends StatelessWidget {
           children: [
             const WelcomeCard(),
             ContentCard(
+                title: 'Ingresos a Planta',
+                icon: Icons.local_shipping,
+                context: context,
+                screenToNavigate: const IngresoPlanta()),
+            ContentCard(
                 title: 'HR',
                 icon: Icons.local_shipping,
                 context: context,
-                screenToNavigate: TableView()),
-            ContentCard(
-                title: 'Grafica',
-                icon: Icons.swap_horiz,
-                context: context,
-                screenToNavigate: BarChartSample()),
+                screenToNavigate: const TableView()),
+            // ContentCard(
+            //     title: 'Grafica',
+            //     icon: Icons.swap_horiz,
+            //     context: context,
+            //     screenToNavigate: BarChartSample()),
             ContentCard(
                 title: 'Recepción unidades',
                 icon: Icons.home,
@@ -60,27 +69,27 @@ class HomeScreen extends StatelessWidget {
                 title: 'Tratamiento',
                 icon: Icons.local_shipping_outlined,
                 context: context,
-                screenToNavigate: BarChartSample()),
+                screenToNavigate: const Tratamiento()),
             ContentCard(
                 title: 'DF',
                 icon: Icons.local_drink,
                 context: context,
-                screenToNavigate: BarChartSample()),
-            ContentCard(
-                title: 'Maquinaria',
-                icon: Icons.local_drink,
-                context: context,
-                screenToNavigate: BarChartSample()),
+                screenToNavigate: const DfPage()),
+            // ContentCard(
+            //     title: 'Maquinaria',
+            //     icon: Icons.local_drink,
+            //     context: context,
+            //     screenToNavigate: BarChartSample()),
             ContentCard(
                 title: 'Grifo',
                 icon: Icons.local_drink,
                 context: context,
-                screenToNavigate: BarChartSample()),
+                screenToNavigate: const Grifo()),
             ContentCard(
                 title: 'Ptari',
                 icon: Icons.local_drink,
                 context: context,
-                screenToNavigate: BarChartSample()),
+                screenToNavigate: Ptari()),
           ],
         ),
       ),

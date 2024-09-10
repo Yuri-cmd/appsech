@@ -2,9 +2,15 @@ import 'package:appsech/modalform.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert'; // Importa la biblioteca json
+import 'package:appsech/theme/app_theme.dart';
+import 'package:appsech/widgets/widgets.dart';
+import 'package:appsech/grafica.dart';
 
 class TableView extends StatefulWidget {
+  const TableView({super.key});
+
   @override
+  // ignore: library_private_types_in_public_api
   _TableViewState createState() => _TableViewState();
 }
 
@@ -38,6 +44,7 @@ class _TableViewState extends State<TableView> {
         throw Exception('Error al cargar los datos');
       }
     } catch (e) {
+      // ignore: avoid_print
       print('Error: $e');
     }
   }
@@ -46,7 +53,23 @@ class _TableViewState extends State<TableView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tabla de Datos'),
+        backgroundColor: AppTheme.primary,
+        title: const Text('HR'),
+      ),
+      endDrawer: NavOptionsView(
+        options: [
+          NavOption(
+            title: 'Cambiar Contraseña',
+            icon: Icons.change_circle_outlined,
+            targetView: BarChartSample(),
+          ),
+          NavOption(
+            title: 'Cerrar Sesión',
+            icon: Icons.exit_to_app,
+            targetView: BarChartSample(),
+          ),
+          // Añade más opciones aquí
+        ],
       ),
       body: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -126,10 +149,10 @@ class _TableViewState extends State<TableView> {
           // Aquí puedes abrir el modal del formulario Por ejemplo,
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => FormModal()),
+            MaterialPageRoute(builder: (context) => const FormModal()),
           );
         },
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }

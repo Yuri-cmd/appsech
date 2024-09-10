@@ -6,6 +6,7 @@ class FormModal extends StatefulWidget {
   const FormModal({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _FormModalState createState() => _FormModalState();
 }
 
@@ -116,7 +117,7 @@ class _FormModalState extends State<FormModal> {
                   Navigator.of(context).push(
                     // Navega a TableView
                     MaterialPageRoute(
-                      builder: (BuildContext context) => TableView(),
+                      builder: (BuildContext context) => const TableView(),
                     ),
                   );
                 },
@@ -127,7 +128,7 @@ class _FormModalState extends State<FormModal> {
       );
     } else {
       // Hubo un error al enviar los datos
-      print('Error al enviar datos: ${response.statusCode}');
+      // print('Error al enviar datos: ${response.statusCode}');
     }
   }
 

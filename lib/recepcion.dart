@@ -1,5 +1,10 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
+import 'package:appsech/grafica.dart';
 import 'package:appsech/theme/app_theme.dart';
+import 'package:appsech/widgets/widgets.dart';
+import 'package:appsech/chart/charts.dart';
 
 class Recepcion extends StatefulWidget {
   const Recepcion({super.key});
@@ -60,6 +65,45 @@ class _RecepcionState extends State<Recepcion> {
       appBar: AppBar(
         backgroundColor: AppTheme.primary,
         title: const Text('Recepción de unidades'),
+      ),
+      endDrawer: NavOptionsView(
+        options: [
+          NavOption(
+            title: 'Distribución de ingresos de camiones',
+            icon: Icons.pie_chart,
+            targetView: const DistribucionIngresos(),
+          ),
+          NavOption(
+            title: 'Cantidad de camiones que ingresan al ecocentro',
+            icon: Icons.bar_chart,
+            targetView: const CantidadCamiones(),
+          ),
+          NavOption(
+            title: 'Camiones-Acum.',
+            icon: Icons.pie_chart,
+            targetView: const CamionesAcumlados(),
+          ),
+          NavOption(
+            title: 'Toneladas Ingresadas',
+            icon: Icons.bar_chart,
+            targetView: const ToneladasIngresadas(),
+          ),
+          NavOption(
+            title: 'Ingreso de residuos Acum',
+            icon: Icons.pie_chart,
+            targetView: const IngresoResiduos(),
+          ),
+          NavOption(
+            title: 'Ecocentro Chilca',
+            icon: Icons.area_chart,
+            targetView: BarChartSample(),
+          ),
+          NavOption(
+            title: 'Demora en la atención de unidades',
+            icon: Icons.pie_chart,
+            targetView: BarChartSample(),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

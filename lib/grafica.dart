@@ -18,6 +18,8 @@ class BarChartSample extends StatelessWidget {
     ),
   ];
 
+  BarChartSample({super.key});
+
   @override
   Widget build(BuildContext context) {
     return charts.BarChart(
@@ -25,7 +27,7 @@ class BarChartSample extends StatelessWidget {
       animate: true,
       vertical: false,
       barRendererDecorator: charts.BarLabelDecorator<String>(),
-      domainAxis: charts.OrdinalAxisSpec(renderSpec: charts.NoneRenderSpec()),
+      domainAxis: const charts.OrdinalAxisSpec(renderSpec: charts.NoneRenderSpec()),
     );
   }
 }

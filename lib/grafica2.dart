@@ -5,6 +5,8 @@ import 'package:charts_flutter/flutter.dart' as charts;
 class PieChartSample extends StatelessWidget {
   final List<charts.Series> seriesList = _createSampleData();
 
+  PieChartSample({super.key});
+
   @override
   Widget build(BuildContext context) {
     return charts.PieChart(

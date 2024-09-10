@@ -86,7 +86,7 @@ class _LoginViewState extends State<LoginView> {
                           _passwordController.text == '123') {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => HomeScreen()),
+                          MaterialPageRoute(builder: (context) => const HomeScreen()),
                         );
                       } else {
                         showDialog(
