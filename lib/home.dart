@@ -5,7 +5,7 @@ import 'package:appsech/tratamiento.dart';
 import 'package:flutter/material.dart';
 
 import 'package:appsech/almacen.dart';
-import 'package:appsech/tableview.dart';
+import 'package:appsech/horometro.dart';
 import 'package:appsech/recepcion.dart';
 import 'package:appsech/ingreso_planta.dart';
 import 'package:appsech/widgets/widgets.dart';
@@ -49,7 +49,7 @@ class HomeScreen extends StatelessWidget {
                 title: 'HR',
                 icon: Icons.local_shipping,
                 context: context,
-                screenToNavigate: const TableView()),
+                screenToNavigate: const Horometro()),
             // ContentCard(
             //     title: 'Grafica',
             //     icon: Icons.swap_horiz,

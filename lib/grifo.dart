@@ -2,8 +2,42 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class Grifo extends StatelessWidget {
+class Grifo extends StatefulWidget {
   const Grifo({super.key});
+
+  @override
+  _GrifoState createState() => _GrifoState();
+}
+
+class _GrifoState extends State<Grifo> {
+  Future<List<Map<String, dynamic>>>? _reportDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _reportDataFuture =
+        fetchData(); // Inicializa el Future al cargar la pantalla
+  }
+
+  void _refreshData() {
+    setState(() {
+      _reportDataFuture =
+          fetchData(); // Actualiza el Future para recargar los datos
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchData() async {
+    final response = await http.get(
+        Uri.parse('https://magussystems.com/appsheet/public/api/get-grifo'));
+    print(response.body);
+    if (response.statusCode == 200) {
+      List<Map<String, dynamic>> data =
+          List<Map<String, dynamic>>.from(json.decode(response.body));
+      return data;
+    } else {
+      throw Exception('Failed to load data');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,14 +45,17 @@ class Grifo extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Grifo'),
       ),
-      body: const Padding(
-        padding: EdgeInsets.all(16.0),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
             children: [
-              RegistroForm(),
+              RegistroForm(
+                  onFormSubmitted:
+                      _refreshData), // Pasa la función de actualización
               SizedBox(height: 20),
-              ReporteTable(),
+              ReporteTable(
+                  future: _reportDataFuture), // Usa el Future actualizado
             ],
           ),
         ),
@@ -28,21 +65,43 @@ class Grifo extends StatelessWidget {
 }
 
 class RegistroForm extends StatefulWidget {
-  const RegistroForm({super.key});
+  final VoidCallback onFormSubmitted;
+
+  const RegistroForm({super.key, required this.onFormSubmitted});
 
   @override
-  // ignore: library_private_types_in_public_api
   _RegistroFormState createState() => _RegistroFormState();
 }
 
 class _RegistroFormState extends State<RegistroForm> {
   final _formKey = GlobalKey<FormState>();
-  final _maquinariaController = TextEditingController();
-  final _modeloController = TextEditingController();
   final _horometroController = TextEditingController();
   final _combustibleController = TextEditingController();
   final _cantidadController = TextEditingController();
+  final _marcaController = TextEditingController(); // Controlador para la marca
   String? _selectedCombustible;
+  String? _selectedMaquinaria;
+  List<String> _maquinarias = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMaquinarias();
+  }
+
+  Future<void> _loadMaquinarias() async {
+    List<String> maquinariaOptions = await fetchMaquinariaOptions();
+    setState(() {
+      _maquinarias = maquinariaOptions;
+    });
+  }
+
+  Future<void> _fetchMaquinariaDetails(String maquinaria) async {
+    Map<String, dynamic> details = await fetchMaquinariaDetails(maquinaria);
+    setState(() {
+      _marcaController.text = details['marca']; // Actualiza el campo de marca
+    });
+  }
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
@@ -50,15 +109,14 @@ class _RegistroFormState extends State<RegistroForm> {
           'https://magussystems.com/appsheet/public/api/registro-grifo';
 
       var response = await http.post(Uri.parse(apiUrl), body: {
-        'maquinaria': _maquinariaController.text,
-        'modelo': _modeloController.text,
+        'maquinaria': _selectedMaquinaria,
+        'marca': _marcaController.text, // Enviar la marca editable
         'horometro': _horometroController.text,
         'combustible': _selectedCombustible,
         'cantidad': _cantidadController.text,
       });
 
       if (response.statusCode == 201) {
-        // ignore: use_build_context_synchronously
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -70,6 +128,8 @@ class _RegistroFormState extends State<RegistroForm> {
                   child: const Text('OK'),
                   onPressed: () {
                     Navigator.of(context).pop();
+                    widget
+                        .onFormSubmitted(); // Llama a la función de actualización
                   },
                 ),
               ],
@@ -77,13 +137,15 @@ class _RegistroFormState extends State<RegistroForm> {
           },
         );
 
-        _maquinariaController.clear();
-        _modeloController.clear();
         _horometroController.clear();
         _combustibleController.clear();
         _cantidadController.clear();
+        _marcaController.clear();
+        setState(() {
+          _selectedMaquinaria = null;
+          _selectedCombustible = null;
+        });
       } else {
-        // ignore: use_build_context_synchronously
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -115,22 +177,37 @@ class _RegistroFormState extends State<RegistroForm> {
           const Text('Registro',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
-          TextFormField(
-            controller: _maquinariaController,
+          DropdownButtonFormField<String>(
+            value: _selectedMaquinaria,
             decoration: const InputDecoration(labelText: 'Maquinaria'),
+            items: _maquinarias.map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                _selectedMaquinaria = newValue!;
+              });
+              if (newValue != null) {
+                _fetchMaquinariaDetails(newValue);
+              }
+            },
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Por favor ingrese la maquinaria';
+                return 'Por favor seleccione una maquinaria';
               }
               return null;
             },
           ),
+          const SizedBox(height: 10),
           TextFormField(
-            controller: _modeloController,
-            decoration: const InputDecoration(labelText: 'Modelo'),
+            controller: _marcaController, // Campo editable de marca
+            decoration: const InputDecoration(labelText: 'Marca'),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Por favor ingrese el modelo';
+                return 'Por favor ingrese la marca';
               }
               return null;
             },
@@ -189,23 +266,14 @@ class _RegistroFormState extends State<RegistroForm> {
 }
 
 class ReporteTable extends StatelessWidget {
-  const ReporteTable({super.key});
+  final Future<List<Map<String, dynamic>>>? future;
 
-  Future<List<Map<String, dynamic>>> fetchData() async {
-    final response = await http.get(
-        Uri.parse('https://magussystems.com/appsheet/public/api/get-grifo'));
-
-    if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      throw Exception('Failed to load data');
-    }
-  }
+  const ReporteTable({super.key, required this.future});
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: fetchData(),
+      future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -232,12 +300,56 @@ class ReporteTable extends StatelessWidget {
                 DataCell(Text(item['fecha'] ?? 'N/A')),
                 DataCell(Text(item['horometro']?.toString() ?? 'N/A')),
                 DataCell(Text(item['combustible']?.toString() ?? 'N/A')),
-                DataCell(Text(item['rendimiento']?.toString() ?? 'N/A')),
+                DataCell(Text(item['rendimiento'].toString() ?? 'N/A')),
               ]);
             }).toList(),
           ),
         );
       },
     );
+  }
+}
+
+// Métodos para obtener la lista de maquinarias y sus detalles
+Future<List<String>> fetchMaquinariaOptions() async {
+  const String baseUrl = 'https://magussystems.com/appsheet/public/api';
+  final url = '$baseUrl/maquinaria';
+  try {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final List<dynamic> maquinariaList = json.decode(response.body);
+      return maquinariaList
+          .map((maquinaria) => maquinaria['nombre'].toString())
+          .toList();
+    } else {
+      throw Exception('Failed to load maquinaria options');
+    }
+  } catch (e) {
+    print('Error: $e');
+    rethrow;
+  }
+}
+
+Future<Map<String, dynamic>> fetchMaquinariaDetails(String maquinaria) async {
+  const String baseUrl = 'https://magussystems.com/appsheet/public/api';
+  final url =
+      '$baseUrl/maquinaria/details?nombre=$maquinaria'; // Codificar la maquinaria si tiene espacios o caracteres especiales.
+  print('URL: $url'); // Depuración: Verificar la URL
+
+  try {
+    final response = await http.get(Uri.parse(url));
+    print(
+        'Response status: ${response.statusCode}'); // Depuración: Verificar estado de la respuesta
+    print(
+        'Response body: ${response.body}'); // Depuración: Verificar contenido de la respuesta
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load maquinaria details');
+    }
+  } catch (e) {
+    print('Error: $e'); // Depuración: Imprimir error en consola
+    rethrow;
   }
 }

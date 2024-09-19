@@ -1,19 +1,18 @@
-import 'package:appsech/tableview.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:appsech/horometro.dart';
+import 'package:appsech/api/api_service.dart';
+import 'package:intl/intl.dart';
 
 class FormModal extends StatefulWidget {
   const FormModal({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _FormModalState createState() => _FormModalState();
 }
 
 class _FormModalState extends State<FormModal> {
   final List<String> _opcionesPropiaAlquilada = ['Propia', 'Alquilada'];
-
-  DateTime? _selectedDate;
+  DateTime _selectedDate = DateTime.now();
   String? _semana;
   String? _mes;
   String? _maquinaria;
@@ -22,19 +21,6 @@ class _FormModalState extends State<FormModal> {
   String? _operador;
   String? _horometroi;
   String? _horometrof;
-  String? _hrt;
-  String? _h;
-  String? _actividad;
-  String? _actividadg;
-  String? _descripcion;
-  String? _ubicacion;
-  String? _ubicaciong;
-  String? _horometroc;
-  String? _tipocombustible;
-  String? _combustible;
-  String? _nviajes;
-  String? _destino;
-  String? _maqabrev;
   String? _costoAlquilerV;
   String? _costoOperador;
   String? _costoAlquilerE;
@@ -43,11 +29,46 @@ class _FormModalState extends State<FormModal> {
   String? _costoTotal;
   String? _budget;
   String? _hextras;
+  String? _horas;
+
+  // Variables para el modal
+  String? _horasActividad;
+  String? _actividad;
+  String? _actividadg;
+  String? _descripcion;
+  String? _ubicacion;
+  String? _ubicaciong;
+  String? _ubicacionT;
+
+  List<String> _maquinariaOptions = [];
+  List<String> _actividadOptions = [];
+  List<String> _actividadGenerals = [];
+  List<Map<String, dynamic>> _zonas = [];
+  Map<String, dynamic> _selectedMaquinariaDetails = {};
+  List<String> _ubicacionesGenerales = [];
+  final TextEditingController _maqController = TextEditingController();
+  final List<Map<String, String?>> _actividadesAgregadas = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMaquinariaOptions();
+    _fetchZonas();
+    _maqController.addListener(() {
+      _maq = _maqController.text;
+    });
+  }
+
+  @override
+  void dispose() {
+    _maqController.dispose();
+    super.dispose();
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
+      initialDate: _selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
@@ -58,13 +79,87 @@ class _FormModalState extends State<FormModal> {
     }
   }
 
-  Future<void> _sendFormData() async {
-    // URL de tu API de Laravel
-    const url = 'https://magussystems.com/appsheet/public/api/save-hr';
+  Future<void> _fetchMaquinariaOptions() async {
+    try {
+      final options = await ApiService.fetchMaquinariaOptions();
+      setState(() {
+        _maquinariaOptions = options;
+      });
+    } catch (e) {
+      print('Error fetching maquinaria options: $e');
+    }
+  }
 
-    // Datos del formulario a enviar
+  Future<void> _fetchMaquinariaDetails(String maquinaria) async {
+    try {
+      final details = await ApiService.fetchMaquinariaDetails(maquinaria);
+      setState(() {
+        _selectedMaquinariaDetails = details;
+        _maq = details['tipo'];
+        _propiedad = details['propiedad'];
+        _maqController.text = _maq ?? ''; // Actualiza el controlador
+        _fetchActividades(
+            maquinaria); // Fetch actividades when maquinaria changes
+      });
+    } catch (e) {
+      print('Error fetching maquinaria details: $e');
+    }
+  }
+
+  Future<void> _fetchActividades(String maquinaria) async {
+    try {
+      final actividades =
+          await ApiService.fetchMaquinariaActividades(maquinaria);
+      setState(() {
+        _actividadOptions = actividades;
+      });
+    } catch (e) {
+      print('Error fetching actividades: $e');
+    }
+  }
+
+  Future<void> _fetchActividadGenerals(String actividad) async {
+    try {
+      final actividadGeneralsResponse =
+          await ApiService.fetchActividadGeneral(actividad);
+      print(
+          'Actividad Generals Response: $actividadGeneralsResponse'); // Depuración
+
+      setState(() {
+        _actividadGenerals = actividadGeneralsResponse;
+      });
+    } catch (e) {
+      print('Error fetching actividad general: $e');
+    }
+  }
+
+  Future<void> _fetchZonas() async {
+    try {
+      final zonasResponse = await ApiService.fetchZonas();
+      setState(() {
+        _zonas = zonasResponse; // Lista de Map<String, dynamic>
+      });
+    } catch (e) {
+      print('Error fetching zonas: $e');
+    }
+  }
+
+  Future<void> _fetchDetalleZona(String? ubicacionId) async {
+    if (ubicacionId == null) return;
+    try {
+      final zonasDetalle = await ApiService.fetchZonaDetalle(ubicacionId);
+      print('pure $zonasDetalle');
+      setState(() {
+        _ubicacionesGenerales = zonasDetalle;
+      });
+    } catch (e) {
+      print('Error fetching actividades: $e');
+    }
+  }
+
+  Future<void> _sendFormData() async {
     final formData = {
-      'fecha': _selectedDate.toString(), // Ajusta según la estructura de tu API
+      'fecha': DateFormat('dd/MM/yyyy').format(_selectedDate),
       'semana': _semana ?? '',
       'mes': _mes ?? '',
       'maquinaria': _maquinaria ?? '',
@@ -73,19 +168,6 @@ class _FormModalState extends State<FormModal> {
       'operador': _operador ?? '',
       'horometroi': _horometroi ?? '',
       'horometrof': _horometrof ?? '',
-      'hrt': _hrt ?? '',
-      'h': _h ?? '',
-      'actividad': _actividad ?? '',
-      'actividadg': _actividadg ?? '',
-      'descripcion': _descripcion ?? '',
-      'ubicacion': _ubicacion ?? '',
-      'ubicaciong': _ubicaciong ?? '',
-      'horometroc': _horometroc ?? '',
-      'tipocombustible': _tipocombustible ?? '',
-      'combustible': _combustible ?? '',
-      'nviajes': _nviajes ?? '',
-      'destino': _destino ?? '',
-      'maqabrev': _maqabrev ?? '',
       'costoAlquilerV': _costoAlquilerV ?? '',
       'costoOperador': _costoOperador ?? '',
       'costoAlquilerE': _costoAlquilerE ?? '',
@@ -96,13 +178,8 @@ class _FormModalState extends State<FormModal> {
       'hextras': _hextras ?? '',
     };
 
-    // Realiza la solicitud POST
-    final response = await http.post(Uri.parse(url), body: formData);
-
-    // Verifica si la solicitud fue exitosa
-    if (response.statusCode == 200) {
-      // La solicitud fue exitosa, puedes procesar la respuesta aquí si es necesario
-      // ignore: use_build_context_synchronously
+    try {
+      await ApiService.sendFormData(formData);
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -113,11 +190,10 @@ class _FormModalState extends State<FormModal> {
               TextButton(
                 child: const Text('OK'),
                 onPressed: () {
-                  Navigator.of(context).pop(); // Cierra la alerta
+                  Navigator.of(context).pop();
                   Navigator.of(context).push(
-                    // Navega a TableView
                     MaterialPageRoute(
-                      builder: (BuildContext context) => const TableView(),
+                      builder: (BuildContext context) => const Horometro(),
                     ),
                   );
                 },
@@ -126,10 +202,148 @@ class _FormModalState extends State<FormModal> {
           );
         },
       );
-    } else {
-      // Hubo un error al enviar los datos
-      // print('Error al enviar datos: ${response.statusCode}');
+    } catch (e) {
+      print('Error saving form data: $e');
     }
+  }
+
+  void _showDetailsModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled:
+          true, // Asegúrate de que el modal pueda ajustarse al tamaño
+      builder: (BuildContext context) {
+        return FractionallySizedBox(
+          heightFactor: 0.8, // Ajusta la altura del modal si es necesario
+          child: SingleChildScrollView(
+            // Hace que el contenido sea desplazable
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Detalles Adicionales'),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    decoration: const InputDecoration(labelText: 'Horas'),
+                    onChanged: (value) {
+                      setState(() {
+                        _horasActividad = value;
+                      });
+                    },
+                  ),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Actividad'),
+                    value: _actividad,
+                    onChanged: (String? newValue) async {
+                      if (newValue != null) {
+                        setState(() {
+                          _actividad = newValue;
+                        });
+
+                        // Obtener las actividades generales basadas en la actividad seleccionada
+                        await _fetchActividadGenerals(newValue);
+                      }
+                    },
+                    items: _actividadOptions.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                  ),
+                  DropdownButtonFormField<String>(
+                    decoration:
+                        const InputDecoration(labelText: 'Actividad General'),
+                    value: _actividadg,
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _actividadg = newValue;
+                      });
+                    },
+                    items: _actividadGenerals.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                  ),
+                  TextFormField(
+                    decoration: const InputDecoration(labelText: 'Descripción'),
+                    onChanged: (value) {
+                      setState(() {
+                        _descripcion = value;
+                      });
+                    },
+                  ),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Ubicación'),
+                    value: _ubicacion,
+                    items: _zonas.map<DropdownMenuItem<String>>((zona) {
+                      var zonaT = zona['nombre'];
+                      return DropdownMenuItem<String>(
+                        value: zona['id'],
+                        child: Text(zona['nombre']),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _ubicacion = newValue;
+                        _ubicacionT = _ubicacionT;
+                      });
+                      _fetchDetalleZona(
+                          newValue); // Asegúrate de actualizar las ubicaciones generales
+                    },
+                  ),
+                  DropdownButtonFormField<String>(
+                    decoration:
+                        const InputDecoration(labelText: 'Ubicación General'),
+                    value: _ubicaciong,
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _ubicaciong = newValue;
+                      });
+                    },
+                    items: _ubicacionesGenerales.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_actividad != null) {
+                        setState(() {
+                          _actividadesAgregadas.add({
+                            'horaActividad': _horasActividad,
+                            'actividad': _actividad,
+                            'actividadGeneral': _actividadg,
+                            'descripcion': _descripcion,
+                            'ubicacion': _ubicacionT,
+                            'ubicaciong': _ubicaciong,
+                          });
+                          _actividad = null;
+                          _actividadg = null;
+                          _descripcion = null;
+                          _ubicacion = null;
+                          _ubicaciong = null;
+                          _horasActividad = null;
+                        });
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: const Text('Agregar Actividad'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -145,7 +359,7 @@ class _FormModalState extends State<FormModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Llena los campos requeridos:'),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16.0),
               InkWell(
                 onTap: () => _selectDate(context),
                 child: InputDecorator(
@@ -157,46 +371,34 @@ class _FormModalState extends State<FormModal> {
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       Text(
-                        _selectedDate != null
-                            ? "${_selectedDate!.toLocal()}"
-                            : 'Selecciona una fecha',
+                        DateFormat('dd/MM/yyyy').format(_selectedDate),
                       ),
                       const Icon(Icons.calendar_today),
                     ],
                   ),
                 ),
               ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Semana'),
-                onChanged: (value) {
-                  setState(() {
-                    _semana = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Mes'),
-                onChanged: (value) {
-                  setState(() {
-                    _mes = value;
-                  });
-                },
-              ),
-              TextFormField(
+              DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Maquinaria'),
-                onChanged: (value) {
-                  setState(() {
-                    _maquinaria = value;
-                  });
+                value: _maquinaria,
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _maquinaria = newValue;
+                    });
+                    _fetchMaquinariaDetails(newValue);
+                  }
                 },
+                items: _maquinariaOptions.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
               ),
               TextFormField(
+                controller: _maqController,
                 decoration: const InputDecoration(labelText: 'MAQ'),
-                onChanged: (value) {
-                  setState(() {
-                    _maq = value;
-                  });
-                },
               ),
               DropdownButtonFormField<String>(
                 decoration:
@@ -224,7 +426,7 @@ class _FormModalState extends State<FormModal> {
               ),
               TextFormField(
                 decoration:
-                    const InputDecoration(labelText: 'Horometro inicio'),
+                    const InputDecoration(labelText: 'Horómetro Inicial'),
                 onChanged: (value) {
                   setState(() {
                     _horometroi = value;
@@ -232,7 +434,7 @@ class _FormModalState extends State<FormModal> {
                 },
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Horometro final'),
+                decoration: const InputDecoration(labelText: 'Horómetro Final'),
                 onChanged: (value) {
                   setState(() {
                     _horometrof = value;
@@ -240,189 +442,44 @@ class _FormModalState extends State<FormModal> {
                 },
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Hr Trabajadas'),
+                decoration: const InputDecoration(labelText: 'Horas'),
                 onChanged: (value) {
                   setState(() {
-                    _hrt = value;
+                    _horas =
+                        value; // Corrige aquí el campo que deseas actualizar
                   });
                 },
               ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'H'),
-                onChanged: (value) {
-                  setState(() {
-                    _h = value;
-                  });
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _showDetailsModal,
+                child: const Text('Agregar Actividad'),
+              ),
+              const SizedBox(height: 16.0),
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: _actividadesAgregadas.length,
+                itemBuilder: (context, index) {
+                  final actividad = _actividadesAgregadas[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: ListTile(
+                      title: Text(actividad['actividad'] ?? ''),
+                      subtitle: Text(
+                        'Horas: ${actividad['horaActividad'] ?? ''}\nDescripción: ${actividad['descripcion'] ?? ''}\nUbicación: ${actividad['ubicacion'] ?? ''}\nUbicación General: ${actividad['ubicaciong'] ?? ''}',
+                      ),
+                    ),
+                  );
                 },
               ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Actividad'),
-                onChanged: (value) {
-                  setState(() {
-                    _actividad = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration:
-                    const InputDecoration(labelText: 'Actividad general'),
-                onChanged: (value) {
-                  setState(() {
-                    _actividadg = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration:
-                    const InputDecoration(labelText: 'Descripción específica'),
-                onChanged: (value) {
-                  setState(() {
-                    _descripcion = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Ubicación'),
-                onChanged: (value) {
-                  setState(() {
-                    _ubicacion = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration:
-                    const InputDecoration(labelText: 'Ubicación General'),
-                onChanged: (value) {
-                  setState(() {
-                    _ubicaciong = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Horometro carga'),
-                onChanged: (value) {
-                  setState(() {
-                    _horometroc = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration:
-                    const InputDecoration(labelText: 'Tipo Combustible'),
-                onChanged: (value) {
-                  setState(() {
-                    _tipocombustible = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Combustible'),
-                onChanged: (value) {
-                  setState(() {
-                    _combustible = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'N° de viajes'),
-                onChanged: (value) {
-                  setState(() {
-                    _nviajes = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Destino'),
-                onChanged: (value) {
-                  setState(() {
-                    _destino = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'maq'),
-                onChanged: (value) {
-                  setState(() {
-                    _maqabrev = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(
-                    labelText: 'COSTO DE ALQUILER Volq (S/.)'),
-                onChanged: (value) {
-                  setState(() {
-                    _costoAlquilerV = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration:
-                    const InputDecoration(labelText: 'COSTO OPERADOR (S/.)'),
-                onChanged: (value) {
-                  setState(() {
-                    _costoOperador = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(
-                    labelText: 'COSTO ALQUILER EXCAVADORA.'),
-                onChanged: (value) {
-                  setState(() {
-                    _costoAlquilerE = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration:
-                    const InputDecoration(labelText: 'COSTO RETROEXCAVADORA'),
-                onChanged: (value) {
-                  setState(() {
-                    _costoRetro = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'COSTO MONT'),
-                onChanged: (value) {
-                  setState(() {
-                    _costoMont = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration:
-                    const InputDecoration(labelText: 'COSTO TOTAL (S/.)'),
-                onChanged: (value) {
-                  setState(() {
-                    _costoTotal = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'BUDGET'),
-                onChanged: (value) {
-                  setState(() {
-                    _budget = value;
-                  });
-                },
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'HEXTRAS'),
-                onChanged: (value) {
-                  setState(() {
-                    _hextras = value;
-                  });
-                },
+              const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: _sendFormData,
+                child: const Text('Enviar'),
               ),
             ],
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _selectedDate != null ? _sendFormData : null,
-        child: const Icon(Icons.save),
       ),
     );
   }

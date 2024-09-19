@@ -22,3 +22,31 @@ class CustomShape extends CustomClipper<Path> {
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
+
+class DialogHelper {
+  static Future<bool?> confirmarEliminar(BuildContext context) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirmar eliminación'),
+          content: const Text('¿Está seguro de que desea eliminar este registro?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false); // Cancelar
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, true); // Confirmar
+              },
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
