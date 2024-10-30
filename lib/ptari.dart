@@ -1,4 +1,4 @@
-// ignore_for_file: use_key_in_widget_constructors
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
 import 'package:appsech/theme/app_theme.dart';
@@ -19,7 +19,9 @@ class Ptari extends StatelessWidget {
             const SizedBox(height: 20),
             ProduccionSection(),
             const SizedBox(height: 20),
-            ConsumoInsumosSection(),
+            ProduccionPtardSection(),
+            const SizedBox(height: 20),
+            ConsumoInsumosTable(),
             const SizedBox(height: 20),
             ControlCalidadSection(),
             const SizedBox(height: 20),
@@ -31,10 +33,15 @@ class Ptari extends StatelessWidget {
   }
 }
 
-class IngresosTable extends StatelessWidget {
+class IngresosTable extends StatefulWidget {
+  @override
+  _IngresosTableState createState() => _IngresosTableState();
+}
+
+class _IngresosTableState extends State<IngresosTable> {
   final List<String> _headers = [
     "Balsa",
-    "B1 (m3)",
+    "B1 (m3)", // Primera columna con cálculo
     "B2 (m3)",
     "B3 (m3)",
     "B4 (m3)",
@@ -47,8 +54,55 @@ class IngresosTable extends StatelessWidget {
     ["Recepción directa (m3)", "25", "100", "0", "0", "0", "0"],
     ["Recepción por Transvase", "100", "10", "100", "10", "10", "30"],
     ["Salida por Transvase", "10", "10", "10", "0", "0", "0"],
-    ["Ocupabilidad final", "34%", "85%", "97%", "86%", "13%", "82%"],
+    [
+      "Ocupabilidad final",
+      "0",
+      "0%",
+      "0%",
+      "0%",
+      "0%",
+      "0%"
+    ], // Valores calculados
   ];
+
+  final Set<String> _editableRows = {
+    "Recepción directa (m3)",
+    "Recepción por Transvase",
+    "Salida por Transvase"
+  };
+
+  // Función para realizar el cálculo y actualizar la fila "Ocupabilidad final"
+  void _calcularOcupabilidadFinal() {
+    setState(() {
+      for (int i = 1; i < _headers.length; i++) {
+        double resultado = 0.0;
+
+        // Obtener los valores de las filas B6, B7, B8 y B9
+        double b6 = double.tryParse(_data[1][i]) ?? 0.0;
+        double b7 = double.tryParse(_data[2][i]) ?? 0.0;
+        double b8 = double.tryParse(_data[3][i]) ?? 0.0;
+        double b9 = double.tryParse(_data[4][i]) ?? 0.0;
+
+        // Aplicar el cálculo según la columna
+        if (i == 1) {
+          resultado = (b6 + b7 + b8 - b9) / 1600;
+        } else if (i == 2) {
+          resultado = (b6 + b7 + b8 - b9) / 250;
+        } else if (i == 3) {
+          resultado = (b6 + b7 + b8 - b9) / 580;
+        } else if (i == 4) {
+          resultado = (b6 + b7 + b8 - b9) / 200;
+        } else if (i == 5) {
+          resultado = (b6 + b7 + b8 - b9) / 224;
+        } else if (i == 6) {
+          resultado = (b6 + b7 + b8 - b9) / 485;
+        }
+
+        // Actualizar el valor en la fila de "Ocupabilidad final"
+        _data[4][i] = "${(resultado * 100).toStringAsFixed(2)}%";
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,11 +124,31 @@ class IngresosTable extends StatelessWidget {
             rows: _data.map((row) {
               return DataRow(
                 cells: row.map((cell) {
-                  return DataCell(Text(cell));
+                  if (_editableRows.contains(row[0])) {
+                    return DataCell(
+                      TextField(
+                        controller: TextEditingController(text: cell),
+                        onSubmitted: (newValue) {
+                          setState(() {
+                            int columnIndex = row.indexOf(cell);
+                            _data[_data.indexOf(row)][columnIndex] = newValue;
+                            // Recalcular la ocupabilidad final después de la edición
+                            _calcularOcupabilidadFinal();
+                          });
+                        },
+                      ),
+                    );
+                  } else {
+                    return DataCell(Text(cell));
+                  }
                 }).toList(),
               );
             }).toList(),
           ),
+        ),
+        ElevatedButton(
+          onPressed: _calcularOcupabilidadFinal,
+          child: const Text("Calcular Ocupabilidad Final"),
         ),
       ],
     );
@@ -82,18 +156,16 @@ class IngresosTable extends StatelessWidget {
 }
 
 class ProduccionSection extends StatelessWidget {
-  final TextEditingController _aguaTratadaController =
-      TextEditingController(text: "65");
+  final TextEditingController _aguaTratadaController = TextEditingController();
   final TextEditingController _lodosGeneradosController =
-      TextEditingController(text: "5");
-  final TextEditingController _aguaRiegoController =
-      TextEditingController(text: "30");
+      TextEditingController();
+  final TextEditingController _aguaRiegoController = TextEditingController();
   final TextEditingController _horasDisponiblesController =
       TextEditingController();
   final TextEditingController _horasMantenimientoController =
       TextEditingController();
   final TextEditingController _paradasOperativasController =
-      TextEditingController(text: "1");
+      TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -133,12 +205,69 @@ class ProduccionSection extends StatelessWidget {
   }
 }
 
-class ConsumoInsumosSection extends StatelessWidget {
+class ProduccionPtardSection extends StatelessWidget {
+  final TextEditingController _contometroInicialController =
+      TextEditingController();
+  final TextEditingController _contometroFinalController =
+      TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Producción:',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _contometroInicialController,
+          decoration:
+              const InputDecoration(labelText: 'Contómetro inicial (m3)'),
+        ),
+        TextFormField(
+          controller: _contometroFinalController,
+          decoration: const InputDecoration(labelText: 'Contómetro final (m3)'),
+        ),
+      ],
+    );
+  }
+}
+
+class ConsumoInsumosTable extends StatefulWidget {
+  @override
+  _ConsumoInsumosTableState createState() => _ConsumoInsumosTableState();
+}
+
+class _ConsumoInsumosTableState extends State<ConsumoInsumosTable> {
   final List<Map<String, dynamic>> _data = [
-    {"descripcion": "Peróxido (L)", "cantidad": "29.1", "costo": "4.07"},
-    {"descripcion": "Ácido sulfúrico (L)", "cantidad": "14", "costo": "3.07"},
-    // Agrega más filas según sea necesario
+    {"descripcion": "Peróxido (L)", "cantidad": "0", "costo": "4.07"},
+    {"descripcion": "Sulfato ferroso (L)", "cantidad": "0", "costo": "3.93"},
+    {"descripcion": "Ácido sulfúrico (L)", "cantidad": "0", "costo": "3.35"},
+    {"descripcion": "Hidróxido de Sodio (L)", "cantidad": "0", "costo": "4.15"},
+    {"descripcion": "Coagulante (L)", "cantidad": "0", "costo": "6.15"},
+    {"descripcion": "Floculante (L)", "cantidad": "0", "costo": "20.40"},
+    {
+      "descripcion": "Hipoclorito de sodio (L)",
+      "cantidad": "0",
+      "costo": "3.37"
+    },
   ];
+
+  void _addRow() {
+    setState(() {
+      // Añadir una nueva fila vacía
+      _data.add({'descripcion': '', 'cantidad': '', 'costo': ''});
+    });
+  }
+
+  void _guardarValor(int index) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(
+              'Guardado: ${_data[index]['descripcion']} con valor ${_data[index]['costo']}')),
+    );
+    // print('Guardando valor: ${_data[index]}');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -154,6 +283,7 @@ class ConsumoInsumosSection extends StatelessWidget {
             0: FlexColumnWidth(2),
             1: FlexColumnWidth(1),
             2: FlexColumnWidth(1),
+            3: IntrinsicColumnWidth(), // Para ajustar el tamaño del ícono
           },
           children: [
             const TableRow(children: [
@@ -169,44 +299,105 @@ class ConsumoInsumosSection extends StatelessWidget {
                 padding: EdgeInsets.all(8.0),
                 child: Text('Costo (Soles) + IGV'),
               ),
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text('Acción'),
+              ),
             ]),
-            for (var item in _data)
+            for (int i = 0; i < _data.length; i++)
               TableRow(children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
-                    initialValue: item['descripcion'],
+                    initialValue: _data[i]['descripcion'],
                     decoration: const InputDecoration(border: InputBorder.none),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _data[i]['descripcion'] =
+                            newValue; // Guardar el valor actualizado
+                      });
+                    },
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
-                    initialValue: item['cantidad'],
+                    initialValue: _data[i]['cantidad'],
                     decoration: const InputDecoration(border: InputBorder.none),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _data[i]['cantidad'] =
+                            newValue; // Guardar el valor actualizado
+                      });
+                    },
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
-                    initialValue: item['costo'],
+                    initialValue: _data[i]['costo'],
                     decoration: const InputDecoration(border: InputBorder.none),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _data[i]['costo'] =
+                            newValue; // Guardar el valor actualizado
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: IconButton(
+                    icon: const Icon(Icons.save, color: Colors.blue),
+                    onPressed: () => _guardarValor(i),
+                    tooltip: 'Guardar',
                   ),
                 ),
               ]),
           ],
+        ),
+        const SizedBox(height: 10), // Espacio entre la tabla y el botón
+        ElevatedButton(
+          onPressed: _addRow, // Llama al método para agregar una fila
+          child: const Text('Agregar Fila'),
         ),
       ],
     );
   }
 }
 
-class ControlCalidadSection extends StatelessWidget {
+class ControlCalidadSection extends StatefulWidget {
+  @override
+  _ControlCalidadSectionState createState() => _ControlCalidadSectionState();
+}
+
+class _ControlCalidadSectionState extends State<ControlCalidadSection> {
+  // Datos iniciales
   final List<Map<String, dynamic>> _data = [
-    {"parametro": "pH", "valor": "7.2"},
-    {"parametro": "DBO (ppm)", "valor": "221"},
-    // Agrega más filas según sea necesario
+    {"descripcion": "pH", "cantidad": "0", "costo": "6.5-8.5"},
+    {"descripcion": "DQO (ppm)", "cantidad": "0", "costo": "200"},
+    {"descripcion": "DBO (ppm)", "cantidad": "0", "costo": "100"},
+    {"descripcion": "N-NH3 (ppm)", "cantidad": "0", "costo": "40"},
+    {"descripcion": "AYG (ppm)", "cantidad": "0", "costo": "20"},
+    {"descripcion": "SST (ppm)", "cantidad": "0", "costo": "50"},
+    {"descripcion": "Coliformes", "cantidad": "0", "costo": "1000"},
   ];
+
+  void _addRow() {
+    setState(() {
+      // Añadir una nueva fila vacía
+      _data.add({'descripcion': '', 'cantidad': '', 'costo': ''});
+    });
+  }
+
+  void _guardarValor(int index) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(
+              'Guardado: ${_data[index]['descripcion']} con valor ${_data[index]['costo']}')),
+    );
+    // print('Guardando valor: ${_data[index]}');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,36 +412,84 @@ class ControlCalidadSection extends StatelessWidget {
           columnWidths: const {
             0: FlexColumnWidth(2),
             1: FlexColumnWidth(1),
+            2: FlexColumnWidth(1),
+            3: IntrinsicColumnWidth(), // Para ajustar el tamaño del ícono
           },
           children: [
             const TableRow(children: [
               Padding(
                 padding: EdgeInsets.all(8.0),
-                child: Text('Parámetro'),
+                child: Text('Descripción'),
               ),
               Padding(
                 padding: EdgeInsets.all(8.0),
-                child: Text('Valor'),
+                child: Text('Cantidad'),
+              ),
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text('Costo (Soles) + IGV'),
+              ),
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text('Acción'),
               ),
             ]),
-            for (var item in _data)
+            for (int i = 0; i < _data.length; i++)
               TableRow(children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
-                    initialValue: item['parametro'],
+                    initialValue: _data[i]['descripcion'],
                     decoration: const InputDecoration(border: InputBorder.none),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _data[i]['descripcion'] =
+                            newValue; // Guardar el valor actualizado
+                      });
+                    },
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
-                    initialValue: item['valor'],
+                    initialValue: _data[i]['cantidad'],
                     decoration: const InputDecoration(border: InputBorder.none),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _data[i]['cantidad'] =
+                            newValue; // Guardar el valor actualizado
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextFormField(
+                    initialValue: _data[i]['costo'],
+                    decoration: const InputDecoration(border: InputBorder.none),
+                    onChanged: (newValue) {
+                      setState(() {
+                        _data[i]['costo'] =
+                            newValue; // Guardar el valor actualizado
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: IconButton(
+                    icon: const Icon(Icons.save, color: Colors.blue),
+                    onPressed: () => _guardarValor(i),
+                    tooltip: 'Guardar',
                   ),
                 ),
               ]),
           ],
+        ),
+        const SizedBox(height: 10), // Espacio entre la tabla y el botón
+        ElevatedButton(
+          onPressed: _addRow, // Llama al método para agregar una fila
+          child: const Text('Agregar Fila'),
         ),
       ],
     );

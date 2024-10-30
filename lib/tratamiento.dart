@@ -1,227 +1,169 @@
+// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
+
+import 'package:appsech/api/api_service.dart';
+import 'package:appsech/screens/tratamiento_table.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:appsech/screens/tratamiento_detalle.dart';
 
 class Tratamiento extends StatefulWidget {
   const Tratamiento({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _TratamientoState createState() => _TratamientoState();
 }
 
 class _TratamientoState extends State<Tratamiento> {
-  List<List<String>> tableData = [];
+  String selectedZona = 'L1.1'; // Zona seleccionada por defecto
+  String selectedEstado = 'Todos'; // Estado seleccionado por defecto
 
-  // Text controllers for the form fields
-  TextEditingController fechaInicioController = TextEditingController();
-  TextEditingController fechaFinController = TextEditingController();
-  TextEditingController tipoLodoController = TextEditingController();
-  TextEditingController ubicacionController = TextEditingController();
-  TextEditingController tratadoController = TextEditingController();
-  TextEditingController tierraUtilizadaController = TextEditingController();
-  TextEditingController lodoUtilizadoController = TextEditingController();
-  TextEditingController excavadoController = TextEditingController();
-  TextEditingController volqexcController = TextEditingController();
-  TextEditingController totalLodosController = TextEditingController();
-  TextEditingController totalLixiviadosController = TextEditingController();
-  TextEditingController tierraEstabilizadaController = TextEditingController();
-  TextEditingController lugarDisposicionController = TextEditingController();
-  TextEditingController tierraUsadaController = TextEditingController();
-  TextEditingController ratioCementadoController = TextEditingController();
-  TextEditingController tierraAhorradaController = TextEditingController();
-  TextEditingController totalTierraSinEsparjaController =
+  final TextEditingController numeroProcesoController = TextEditingController();
+  final TextEditingController fechaInicioController = TextEditingController();
+  final TextEditingController fechaFinController = TextEditingController();
+  final TextEditingController ubicacionGeneralController =
       TextEditingController();
-  TextEditingController ahorroAlgVolqueteController = TextEditingController();
-  TextEditingController ahorroAlgExcavadorController = TextEditingController();
-  TextEditingController ahorroCementoController = TextEditingController();
-  TextEditingController consumoCementoController = TextEditingController();
-  TextEditingController ahorroNetoController = TextEditingController();
+  final TextEditingController ubicacionEspecificaController =
+      TextEditingController();
 
-  final String apiUrl =
-      'https://magussystems.com/appsheet/public/api/get-tratamiento'; // Cambia esto a tu URL de API
+  final TextEditingController ratioVolqueteController = TextEditingController();
+  final TextEditingController costoVolqueteController = TextEditingController();
+  final TextEditingController ratioExcavadoraController =
+      TextEditingController();
+  final TextEditingController costoExcavadoraController =
+      TextEditingController();
+  final TextEditingController rendimientoVolqueteController =
+      TextEditingController();
+  final TextEditingController rendimientoExcavadoraController =
+      TextEditingController();
+  final TextEditingController precioCombustibleController =
+      TextEditingController();
+  final TextEditingController costoCementoController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _cargarDatos();
-  }
+  // Lista de zonas para el filtro
+  final List<String> zonas = [
+    'Todos',
+    'L1.1',
+    'L1.2',
+    'L2',
+    'L3',
+    'P1',
+    'P2',
+    'P3',
+    'P4',
+    'P5',
+    'D1',
+    'D2',
+    'D3',
+    'D4',
+    'D5',
+    'PTARI',
+    'VES',
+    'EVAPORACIÓN'
+  ];
 
-  Future<void> _cargarDatos() async {
-    final response = await http.get(Uri.parse(apiUrl));
-    if (response.statusCode == 200) {
-      List<dynamic> data = jsonDecode(response.body);
-      setState(() {
-        tableData = data
-            .map((item) => [
-                  item['fecha_inicio']?.toString() ?? '',
-                  item['fecha_fin']?.toString() ?? '',
-                  item['tipo_lodo']?.toString() ?? '',
-                  item['ubicacion']?.toString() ?? '',
-                  item['tratado']?.toString() ?? '',
-                  item['tierra_utilizada']?.toString() ?? '',
-                  item['lodo_utilizado']?.toString() ?? '',
-                  item['excavado']?.toString() ?? '',
-                  item['volqexc']?.toString() ?? '',
-                  item['total_lodos']?.toString() ?? '',
-                  item['total_lixiviados']?.toString() ?? '',
-                  item['tierra_estabilizada']?.toString() ?? '',
-                  item['lugar_disposicion']?.toString() ?? '',
-                  item['tierra_usada']?.toString() ?? '',
-                  item['ratio_cementado']?.toString() ?? '',
-                  item['tierra_ahorrada']?.toString() ?? '',
-                  item['total_tierra_sin_esparja']?.toString() ?? '',
-                  item['ahorro_alg_volquete']?.toString() ?? '',
-                  item['ahorro_alg_excavador']?.toString() ?? '',
-                  item['ahorro_cemento']?.toString() ?? '',
-                  item['consumo_cemento']?.toString() ?? '',
-                  item['ahorro_neto']?.toString() ?? '',
-                ])
-            .toList();
-      });
-    } else {
-      throw Exception('Failed to load data');
+  // Lista de estados para el filtro
+  final List<String> estados = ['Todos', 'Pendiente', 'Finalizado'];
+
+  Future<String> obtenerUltimoNumeroProceso() async {
+    final tratamientos = await ApiService.obtenerTratamientos();
+    if (tratamientos.isNotEmpty) {
+      final ultimoProceso = tratamientos.last['numero_proceso'];
+      return (int.parse(ultimoProceso) + 1).toString().padLeft(3, '0');
     }
+    return '001'; // Si no hay registros, iniciar desde '001'
   }
 
-  Future<void> _guardarFila() async {
-    final Map<String, String> data = {
-      'fecha_inicio': fechaInicioController.text,
-      'fecha_fin': fechaFinController.text,
-      'tipo_lodo': tipoLodoController.text,
-      'ubicacion': ubicacionController.text,
-      'tratado': tratadoController.text,
-      'tierra_utilizada': tierraUtilizadaController.text,
-      'lodo_utilizado': lodoUtilizadoController.text,
-      'excavado': excavadoController.text,
-      'volqexc': volqexcController.text,
-      'total_lodos': totalLodosController.text,
-      'total_lixiviados': totalLixiviadosController.text,
-      'tierra_estabilizada': tierraEstabilizadaController.text,
-      'lugar_disposicion': lugarDisposicionController.text,
-      'tierra_usada': tierraUsadaController.text,
-      'ratio_cementado': ratioCementadoController.text,
-      'tierra_ahorrada': tierraAhorradaController.text,
-      'total_tierra_sin_esparja': totalTierraSinEsparjaController.text,
-      'ahorro_alg_volquete': ahorroAlgVolqueteController.text,
-      'ahorro_alg_excavador': ahorroAlgExcavadorController.text,
-      'ahorro_cemento': ahorroCementoController.text,
-      'consumo_cemento': consumoCementoController.text,
-      'ahorro_neto': ahorroNetoController.text,
-    };
-    final response = await http.post(
-      Uri.parse(
-          'https://magussystems.com/appsheet/public/api/tratamiento-registro'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(data),
-    );
+  void _mostrarModal(BuildContext context) async {
+    String siguienteNumeroProceso = await obtenerUltimoNumeroProceso();
+    numeroProcesoController.text = siguienteNumeroProceso;
 
-    if (response.statusCode == 201) {
-      // Agregar la fila a la tabla después de guardarla en el servidor
-      setState(() {
-        tableData.add(data.values.toList());
-      });
-      _limpiarControladores();
-    } else {
-      throw Exception('Failed to save data $data');
-    }
-  }
-
-  void _limpiarControladores() {
-    fechaInicioController.clear();
-    fechaFinController.clear();
-    tipoLodoController.clear();
-    ubicacionController.clear();
-    tratadoController.clear();
-    tierraUtilizadaController.clear();
-    lodoUtilizadoController.clear();
-    excavadoController.clear();
-    volqexcController.clear();
-    totalLodosController.clear();
-    totalLixiviadosController.clear();
-    tierraEstabilizadaController.clear();
-    lugarDisposicionController.clear();
-    tierraUsadaController.clear();
-    ratioCementadoController.clear();
-    tierraAhorradaController.clear();
-    totalTierraSinEsparjaController.clear();
-    ahorroAlgVolqueteController.clear();
-    ahorroAlgExcavadorController.clear();
-    ahorroCementoController.clear();
-    consumoCementoController.clear();
-    ahorroNetoController.clear();
-  }
-
-  Future<void> _selectDate(
-      BuildContext context, TextEditingController controller) async {
-    DateTime? selectedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-    if (selectedDate != null && selectedDate != DateTime.now()) {
-      controller.text =
-          "${selectedDate.toLocal()}".split(' ')[0]; // Format: YYYY-MM-DD
-    }
-  }
-
-  void _agregarFilaManual() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Agregar nueva fila'),
+          title: const Text('Nuevo Tratamiento'),
           content: SingleChildScrollView(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildDatePickerField('Fecha de inicio', fechaInicioController),
-                _buildDatePickerField('Fecha Fin', fechaFinController),
-                _buildTextField('Tipo de lodo', tipoLodoController),
-                _buildTextField('Ubicación', ubicacionController),
-                _buildTextField('Tratado', tratadoController),
-                _buildTextField('Tierra utilizada', tierraUtilizadaController),
-                _buildTextField('Lodo utilizado', lodoUtilizadoController),
-                _buildTextField('Excavado', excavadoController),
-                _buildTextField('Volqexc', volqexcController),
-                _buildTextField('Total Lodos (Ton)', totalLodosController),
-                _buildTextField(
-                    'Total Lixiviados (Ton)', totalLixiviadosController),
-                _buildTextField('Tierra estabilizada (Tierra utilizada)',
-                    tierraEstabilizadaController),
-                _buildTextField(
-                    'Lugar de Disposición', lugarDisposicionController),
-                _buildTextField('Tierra usada', tierraUsadaController),
-                _buildTextField('Ratio cementado', ratioCementadoController),
-                _buildTextField('Tierra ahorrada', tierraAhorradaController),
-                _buildTextField('Total de Tierra sin esparja',
-                    totalTierraSinEsparjaController),
-                _buildTextField(
-                    'Ahorro Alg. Volquete', ahorroAlgVolqueteController),
-                _buildTextField(
-                    'Ahorro Alg. Excavador', ahorroAlgExcavadorController),
-                _buildTextField('Ahorro en cemento', ahorroCementoController),
-                _buildTextField('Consumo cemento', consumoCementoController),
-                _buildTextField('Ahorro neto', ahorroNetoController),
+                TextField(
+                  controller: numeroProcesoController,
+                  decoration: const InputDecoration(labelText: 'N° Proceso'),
+                  readOnly: true,
+                ),
+                TextField(
+                  controller: fechaInicioController,
+                  readOnly: true,
+                  decoration:
+                      const InputDecoration(labelText: 'Fecha de inicio'),
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2101),
+                    );
+                    if (pickedDate != null) {
+                      setState(() {
+                        fechaInicioController.text =
+                            "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+                      });
+                    }
+                  },
+                ),
+                TextField(
+                  controller: fechaFinController,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: 'Fecha Fin'),
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2101),
+                    );
+                    if (pickedDate != null) {
+                      setState(() {
+                        fechaFinController.text =
+                            "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+                      });
+                    }
+                  },
+                ),
+                TextField(
+                  controller: ubicacionGeneralController,
+                  decoration:
+                      const InputDecoration(labelText: 'Ubicación General'),
+                ),
+                TextField(
+                  controller: ubicacionEspecificaController,
+                  decoration:
+                      const InputDecoration(labelText: 'Ubicación Específica'),
+                ),
               ],
             ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                _guardarFila();
-                Navigator.of(context).pop();
-              },
-              child: const Text('Guardar'),
-            ),
-            TextButton(
-              onPressed: () {
                 Navigator.of(context).pop();
               },
               child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                String idTratamiento = await _guardarDatos();
+                Navigator.of(context).pop();
+                if (idTratamiento.isNotEmpty) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          TratamientoDetalleScreen(id: idTratamiento),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Guardar'),
             ),
           ],
         );
@@ -229,35 +171,168 @@ class _TratamientoState extends State<Tratamiento> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-      ),
+  void _mostrarInformacion(BuildContext context, int id) async {
+    ApiService apiService = ApiService();
+    final detalleList = await apiService.getDetalle(id);
+
+    if (detalleList != null && detalleList.isNotEmpty) {
+      final detalle = detalleList[0]; // Extrae el primer elemento de la lista
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Información Detallada'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('N° Proceso: $id'), // Ajusta según tu lógica
+                  Text(
+                      'Total líquido Tratado (Ton): ${detalle['total_liquido']}'),
+                  Text('Total Lodos (Ton): ${detalle['total_lodos']}'),
+                  Text(
+                      'Total Lixiviados (Ton): ${detalle['total_lixiviados']}'),
+                  Text('Cemento utilizado: ${detalle['cemento_utilizado']}'),
+                  Text('Tierra Utilizada: ${detalle['tierra_utilizada']}'),
+                  Text(
+                      'Residuo reutilizado: ${detalle['tierra_estabilizada']}'), // Ajusta según tu lógica
+                  Text('Ratio Tierra: ${detalle['ratio_tierra']}'),
+                  Text('Ratio Cemento: ${detalle['ratio_cemento']}'),
+                  Text('% Humedad: ${detalle['humedad']}'),
+                  Text('Lugar de disposición: ${detalle['lugar_disposicion']}'),
+                  Text(
+                      'Hora máquina volquete: ${detalle['hora_maquina_volquete']}'),
+                  Text(
+                      'Hora máquina excavadora: ${detalle['hora_maquina_excavadora']}'),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Cerrar'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      // Manejo de error si la solicitud falla
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Error al cargar información')));
+    }
+  }
+
+  Future<String> _guardarDatos() async {
+    final datos = {
+      'numero_proceso': numeroProcesoController.text,
+      'fecha_inicio': fechaInicioController.text,
+      'fecha_fin':
+          fechaFinController.text.isEmpty ? null : fechaFinController.text,
+      'ubicacion_general': ubicacionGeneralController.text,
+      'ubicacion_especifica': ubicacionEspecificaController.text,
+    };
+
+    try {
+      final idTratamiento = await ApiService.guardarTratamiento(datos);
+      return idTratamiento; // Retornar el ID
+    } catch (e) {
+      // print('Error al enviar los datos: $e');
+      return ''; // Retornar un valor vacío en caso de error
+    }
+  }
+
+  TextField _crearTextField(TextEditingController controller, String label) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(labelText: label),
+      keyboardType: TextInputType.number,
     );
   }
 
-  Widget _buildDatePickerField(String label, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: GestureDetector(
-        onTap: () => _selectDate(context, controller),
-        child: AbsorbPointer(
-          child: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              labelText: label,
-              border: const OutlineInputBorder(),
+  void _mostrarModalDatos() {
+    // Inicializa los controladores con los datos que necesitas
+    ratioVolqueteController.text = "0.013";
+    costoVolqueteController.text = "82.5";
+    ratioExcavadoraController.text = "0.14";
+    costoExcavadoraController.text = "198.75";
+    rendimientoVolqueteController.text = "2.5";
+    rendimientoExcavadoraController.text = "8";
+    precioCombustibleController.text = "14";
+    costoCementoController.text = "595";
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Actualizar Costos y Ratios'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _crearTextField(ratioVolqueteController, 'Ratio volquete'),
+                _crearTextField(costoVolqueteController, 'Costo volquete'),
+                _crearTextField(ratioExcavadoraController, 'Ratio excavadora'),
+                _crearTextField(costoExcavadoraController, 'Costo Excavadora'),
+                _crearTextField(rendimientoVolqueteController,
+                    'Rendimiento volquete (gal/hr)'),
+                _crearTextField(rendimientoExcavadoraController,
+                    'Rendimiento excavadora (gal/hr)'),
+                _crearTextField(
+                    precioCombustibleController, 'Precio combustible'),
+                _crearTextField(costoCementoController, 'Costo cemento'),
+              ],
             ),
           ),
-        ),
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Aquí guardarías los datos
+                _guardarDatosActualizados();
+                Navigator.of(context).pop();
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  void _guardarDatosActualizados() {
+    // Aquí implementas la lógica para guardar los datos, tal vez enviándolos a la API
+    // Por ejemplo:
+    // final datosActualizados = {
+    //   'ratio_volquete': ratioVolqueteController.text,
+    //   'costo_volquete': costoVolqueteController.text,
+    //   'ratio_excavadora': ratioExcavadoraController.text,
+    //   'costo_excavadora': costoExcavadoraController.text,
+    //   'rendimiento_volquete': rendimientoVolqueteController.text,
+    //   'rendimiento_excavadora': rendimientoExcavadoraController.text,
+    //   'precio_combustible': precioCombustibleController.text,
+    //   'costo_cemento': costoCementoController.text,
+    // };
+
+    // Lógica para guardar estos datos, por ejemplo:
+    // ApiService.guardarDatosActualizados(datosActualizados).then((result) {
+    //   // Maneja el resultado, muestra un mensaje o actualiza el estado
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('Datos actualizados correctamente')),
+    //   );
+    // }).catchError((error) {
+    //   // Manejo de errores
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(content: Text('Error al actualizar los datos: $error')),
+    //   );
+    // });
   }
 
   @override
@@ -265,56 +340,165 @@ class _TratamientoState extends State<Tratamiento> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tratamiento'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _mostrarModalDatos, // Botón de Guardar
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text('Fecha Inicio')),
-                    DataColumn(label: Text('Fecha Fin')),
-                    DataColumn(label: Text('Tipo Lodo')),
-                    DataColumn(label: Text('Ubicación')),
-                    DataColumn(label: Text('Tratado')),
-                    DataColumn(label: Text('Tierra Utilizada')),
-                    DataColumn(label: Text('Lodo Utilizado')),
-                    DataColumn(label: Text('Excavado')),
-                    DataColumn(label: Text('Volqexc')),
-                    DataColumn(label: Text('Total Lodos')),
-                    DataColumn(label: Text('Total Lixiviados')),
-                    DataColumn(label: Text('Tierra Estabilizada')),
-                    DataColumn(label: Text('Lugar Disposición')),
-                    DataColumn(label: Text('Tierra Usada')),
-                    DataColumn(label: Text('Ratio Cementado')),
-                    DataColumn(label: Text('Tierra Ahorrada')),
-                    DataColumn(label: Text('Total Tierra Sin Esparja')),
-                    DataColumn(label: Text('Ahorro Alg. Volquete')),
-                    DataColumn(label: Text('Ahorro Alg. Excavador')),
-                    DataColumn(label: Text('Ahorro Cemento')),
-                    DataColumn(label: Text('Consumo Cemento')),
-                    DataColumn(label: Text('Ahorro Neto')),
-                  ],
-                  rows: tableData
-                      .map(
-                        (row) => DataRow(
-                          cells:
-                              row.map((cell) => DataCell(Text(cell))).toList(),
-                        ),
-                      )
-                      .toList(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                DropdownButton<String>(
+                  value: selectedZona,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedZona = newValue!;
+                    });
+                  },
+                  items: zonas.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  hint: const Text("Selecciona una zona"),
                 ),
+                DropdownButton<String>(
+                  value: selectedEstado,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedEstado = newValue!;
+                    });
+                  },
+                  items: estados.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  hint: const Text("Selecciona un estado"),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: ApiService.obtenerTratamientos(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return const Center(child: Text('Error al cargar los datos'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                      child: Text('No hay tratamientos disponibles'));
+                } else {
+                  // Filtrar los tratamientos según el estado seleccionado
+                  final tratamientos = snapshot.data!.where((tratamiento) {
+                    if (selectedEstado == 'Todos') return true;
+                    if (selectedEstado == 'Pendiente') {
+                      return tratamiento['estado'] ==
+                          1; // Cambia según tu lógica
+                    } else if (selectedEstado == 'Finalizado') {
+                      return tratamiento['estado'] ==
+                          2; // Cambia según tu lógica
+                    }
+                    return false; // Para otros casos, si hay
+                  }).toList();
+
+                  // ListView con los tratamientos filtrados
+                  return ListView.builder(
+                    itemCount: tratamientos.length,
+                    itemBuilder: (context, index) {
+                      final tratamiento = tratamientos[index];
+                      String idTratamiento = tratamiento['id'].toString();
+                      String estado = tratamiento['estado'] == 1
+                          ? 'Pendiente'
+                          : 'Finalizado';
+
+                      // Imprimir estado y el ID del tratamiento
+                      return Card(
+                        child: ListTile(
+                          title: Text(tratamiento['numero_proceso']),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  'Fecha de inicio: ${tratamiento['fecha_inicio']}'),
+                              Text(
+                                  'Ubicación: ${tratamiento['ubicacion_general']}'),
+                              Text('Estado: $estado'), // Agregar el estado aquí
+                            ],
+                          ),
+                          trailing: tratamiento['estado'] == 1
+                              ? IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            TratamientoDetalleScreen(
+                                                id: idTratamiento),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : IconButton(
+                                  icon: const Icon(Icons.info),
+                                  onPressed: () {
+                                    _mostrarInformacion(
+                                        context, tratamiento['id']);
+                                  },
+                                ),
+                        ),
+                      );
+                    },
+                  );
+                }
+              },
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              FloatingActionButton(
+                onPressed: () => _mostrarModal(context),
+                child: const Icon(Icons.add),
               ),
-            ),
-            ElevatedButton(
-              onPressed: _agregarFilaManual,
-              child: const Text('Agregar fila manual'),
-            ),
-          ],
-        ),
+              FloatingActionButton(
+                onPressed: () async {
+                  // Mostrar el modal con el selector de rango de fechas
+                  DateTimeRange? picked = await showDateRangePicker(
+                    context: context,
+                    firstDate: DateTime(2000), 
+                    lastDate: DateTime(2100),
+                  );
+
+                  if (picked != null) {
+                    // Navegar a la nueva pantalla y pasar el rango de fechas seleccionado
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => TablaTratamientosScreen(
+                          startDate: picked.start,
+                          endDate: picked.end,
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: const Icon(
+                    Icons.table_chart), // Cambia el ícono si lo deseas
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

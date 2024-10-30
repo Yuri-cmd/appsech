@@ -1,61 +1,109 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
+import 'package:appsech/widgets/nav_options_view.dart';
+import 'package:appsech/widgets/pie_chart_sample.dart';
 import 'package:flutter/material.dart';
-import 'package:appsech/grafica.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:appsech/theme/app_theme.dart';
-import 'package:appsech/widgets/widgets.dart';
-import 'package:appsech/chart/charts.dart';
 
 class Recepcion extends StatefulWidget {
   const Recepcion({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _RecepcionState createState() => _RecepcionState();
 }
 
 class _RecepcionState extends State<Recepcion> {
-  final TextEditingController _controllerKanavDia =
-      TextEditingController(text: '2');
-  final TextEditingController _controllerKanavNoche =
-      TextEditingController(text: '0');
-  final TextEditingController _controllerTercerosDia =
-      TextEditingController(text: '16');
-  final TextEditingController _controllerTercerosNoche =
-      TextEditingController(text: '2');
-  final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _controllerSuperanTiempo =
-      TextEditingController(text: '10');
-  final TextEditingController _controllerCausalOperativas =
-      TextEditingController(text: '4');
-  final TextEditingController _controllerCausalAdministrativas =
-      TextEditingController(text: '5');
-  final TextEditingController _controllerCausalCliente =
-      TextEditingController(text: '1');
-
-  final List<TextEditingController> _controllersNewTable = List.generate(
-    18,
-    (index) => TextEditingController(text: '0'),
-  );
-  final List<DataRow> _dataRows = [];
+  List<Map<String, dynamic>> _data = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _dateController.text = '1/2/2024'; // Valor inicial
+    _fetchData();
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.parse('2024-02-01'), // Fecha inicial
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null) {
+  Future<void> _fetchData() async {
+    final response = await http.get(Uri.parse(
+        'https://magussystems.com/appsheet/public/api/get/recepcion/unidades'));
+
+    if (response.statusCode == 200) {
       setState(() {
-        _dateController.text = "${picked.day}/${picked.month}/${picked.year}";
+        _data = List<Map<String, dynamic>>.from(json.decode(response.body));
+        _loading = false;
       });
+    } else {
+      throw Exception('Error al cargar datos');
+    }
+  }
+
+  void _updateValue(int rowIndex, String key, String value) {
+    setState(() {
+      _data[rowIndex][key] = value;
+
+      // Actualizar "N° Camiones terceros día"
+      if (key == 'camiones_kanay_dia' || key == 'cantidad_camiones_dia') {
+        double camionesDiaTotales =
+            _getValueOrDefault(_data[rowIndex]['cantidad_camiones_dia']);
+        double camionesKanayDia = double.tryParse(
+                _data[rowIndex]['camiones_kanay_dia']?.toString() ?? '0') ??
+            0.0;
+
+        double camionesTercerosDia = (camionesDiaTotales - camionesKanayDia)
+            .clamp(0.0, double.infinity); // Evitar valores negativos
+
+        _data[rowIndex]['camiones_terceros_dia'] =
+            camionesTercerosDia.toStringAsFixed(2);
+      }
+
+      // Actualizar "N° Camiones terceros noche"
+      if (key == 'camiones_kanay_noche' || key == 'cantidad_camiones_noche') {
+        double camionesNocheTotales = _getValueOrDefault(_data[rowIndex][
+            'cantidad_camiones_noche']); // Asumiendo que es la misma cantidad total
+        double camionesKanayNoche = double.tryParse(
+                _data[rowIndex]['camiones_kanay_noche']?.toString() ?? '0') ??
+            0.0;
+
+        double camionesTercerosNoche =
+            (camionesNocheTotales - camionesKanayNoche)
+                .clamp(0.0, double.infinity); // Evitar valores negativos
+
+        _data[rowIndex]['camiones_terceros_noche'] =
+            camionesTercerosNoche.toStringAsFixed(2);
+      }
+    });
+  }
+
+  double _getValueOrDefault(dynamic value) {
+    return value != null ? double.tryParse(value.toString()) ?? 0.0 : 0.0;
+  }
+
+  Future<void> _saveRow(int rowIndex) async {
+    final row = _data[rowIndex];
+    final response = await http.post(
+      Uri.parse('https://yourapi.com/save'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'fecha': row['fecha'],
+        'camiones_kanay_dia': row['camiones_kanay_dia'],
+        'camiones_kanay_noche': row['camiones_kanay_noche'],
+        'causal_operativas': row['causal_operativas'],
+        'causal_administrativas': row['causal_administrativas'],
+        'causal_derivadas': row['causal_derivadas'],
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Datos guardados correctamente')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al guardar datos')),
+      );
     }
   }
 
@@ -66,200 +114,76 @@ class _RecepcionState extends State<Recepcion> {
         backgroundColor: AppTheme.primary,
         title: const Text('Recepción de unidades'),
       ),
-      endDrawer: NavOptionsView(
-        options: [
-          NavOption(
-            title: 'Distribución de ingresos de camiones',
-            icon: Icons.pie_chart,
-            targetView: const DistribucionIngresos(),
+      endDrawer: NavOptionsView(options: [
+        NavOption(
+          title: 'DISTRIBUCIÓN DE INGRESO DE CAMIONES',
+          icon: Icons.pie_chart,
+          targetView: const PieChartGrafic(
+            values: [2, 2, 16],
+            colors: [Colors.blue, Colors.orange, Colors.grey],
+            labels: ['', '', ''],
           ),
-          NavOption(
-            title: 'Cantidad de camiones que ingresan al ecocentro',
-            icon: Icons.bar_chart,
-            targetView: const CantidadCamiones(),
+        ),
+        // NavOption(
+        //   title: 'CANTIDAD DE CAMIONES QUE INGRESAN AL ECOCENTRO',
+        //   icon: Icons.pie_chart,
+        //   targetView: const OcupabilidadPlataforma(),
+        // ),
+        NavOption(
+          title: 'CAMIONES - ACUM.',
+          icon: Icons.pie_chart,
+          targetView: const PieChartGrafic(
+            values: [150, 156, 58, 852],
+            colors: [Colors.blue, Colors.orange, Colors.grey, Colors.yellow],
+            labels: [
+              'Camiones / Dia',
+              'Camiones / Noche',
+            ],
           ),
-          NavOption(
-            title: 'Camiones-Acum.',
-            icon: Icons.pie_chart,
-            targetView: const CamionesAcumlados(),
+        ),
+        // NavOption(
+        //   title: 'TONELADAS INGRESADAS',
+        //   icon: Icons.pie_chart,
+        //   targetView: const OcupabilidadPlataforma(),
+        // ),
+        NavOption(
+          title: 'INGRESO DE RESIDUOS ACUM. (Ton)',
+          icon: Icons.pie_chart,
+          targetView: const PieChartGrafic(
+            values: [3979, 2874, 969, 7408],
+            colors: [Colors.blue, Colors.orange, Colors.grey, Colors.yellow],
+            labels: [
+              'A Deposito',
+              'A Plataforma',
+              'A Losa',
+              'A Balsa',
+            ],
           ),
-          NavOption(
-            title: 'Toneladas Ingresadas',
-            icon: Icons.bar_chart,
-            targetView: const ToneladasIngresadas(),
+        ),
+        // NavOption(
+        //   title: 'ECOCENTRO CHILCA/ PROYECCIÓN INGRESO DE RESIDUOS',
+        //   icon: Icons.pie_chart,
+        //   targetView: const OcupabilidadPlataforma(),
+        // ),
+        NavOption(
+          title: 'Demora en la atención de unidades',
+          icon: Icons.pie_chart,
+          targetView: const PieChartGrafic(
+            values: [50, 40, 10],
+            colors: [Colors.blue, Colors.orange, Colors.grey],
+            labels: [
+              'Casual operativa',
+              'Casual administrativas',
+              'Casual derivadas al cliente'
+            ],
           ),
-          NavOption(
-            title: 'Ingreso de residuos Acum',
-            icon: Icons.pie_chart,
-            targetView: const IngresoResiduos(),
-          ),
-          NavOption(
-            title: 'Ecocentro Chilca',
-            icon: Icons.area_chart,
-            targetView: BarChartSample(),
-          ),
-          NavOption(
-            title: 'Demora en la atención de unidades',
-            icon: Icons.pie_chart,
-            targetView: BarChartSample(),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              DataTable(
-                columns: [
-                  const DataColumn(label: Text('Fecha')),
-                  DataColumn(
-                    label: GestureDetector(
-                      onTap: () => _selectDate(context),
-                      child: AbsorbPointer(
-                        child: SizedBox(
-                          width: 150, // or any specific width you want
-                          child: TextField(
-                            controller: _dateController,
-                            decoration: const InputDecoration(
-                              hintText: 'Selecciona una fecha',
-                              suffixIcon: Icon(Icons.calendar_today),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                rows: [
-                  DataRow(cells: [
-                    const DataCell(Text('N° Camiones Kanav día')),
-                    DataCell(
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: _controllerKanavDia,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ),
-                  ]),
-                  DataRow(cells: [
-                    const DataCell(Text('N° Camiones Kanav noche')),
-                    DataCell(
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: _controllerKanavNoche,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ),
-                  ]),
-                  DataRow(cells: [
-                    const DataCell(Text('N° Camiones terceros día')),
-                    DataCell(
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: _controllerTercerosDia,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ),
-                  ]),
-                  DataRow(cells: [
-                    const DataCell(Text('N° Camiones terceros noche')),
-                    DataCell(
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: _controllerTercerosNoche,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ),
-                  ]),
-                  DataRow(cells: [
-                    const DataCell(Text(
-                        'N° unidades que superan el tiempo de atención (2h)')),
-                    DataCell(
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: _controllerSuperanTiempo,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ),
-                  ]),
-                  DataRow(cells: [
-                    const DataCell(Text('Causal operativas')),
-                    DataCell(
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: _controllerCausalOperativas,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ),
-                  ]),
-                  DataRow(cells: [
-                    const DataCell(Text('Causal administrativas')),
-                    DataCell(
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: _controllerCausalAdministrativas,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ),
-                  ]),
-                  DataRow(cells: [
-                    const DataCell(Text('Causal derivadas al cliente')),
-                    DataCell(
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: _controllerCausalCliente,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ),
-                  ]),
-                ],
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  // Lógica para guardar los datos
-                  print('Datos guardados:');
-                  print('Fecha: ${_dateController.text}');
-                  print('N° Camiones Kanav día: ${_controllerKanavDia.text}');
-                  print(
-                      'N° Camiones Kanav noche: ${_controllerKanavNoche.text}');
-                  print(
-                      'N° Camiones terceros día: ${_controllerTercerosDia.text}');
-                  print(
-                      'N° Camiones terceros noche: ${_controllerTercerosNoche.text}');
-                  print(
-                      'N° unidades que superan el tiempo de atención (2h): ${_controllerSuperanTiempo.text}');
-                  print(
-                      'Causal operativas: ${_controllerCausalOperativas.text}');
-                  print(
-                      'Causal administrativas: ${_controllerCausalAdministrativas.text}');
-                  print(
-                      'Causal derivadas al cliente: ${_controllerCausalCliente.text}');
-                  for (var i = 0; i < _controllersNewTable.length; i++) {
-                    print('Campo ${i + 1}: ${_controllersNewTable[i].text}');
-                  }
-                },
-                child: const Text('Guardar'),
-              ),
-              const SizedBox(height: 20),
-              SingleChildScrollView(
+        ),
+      ]),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   columns: const [
@@ -285,120 +209,123 @@ class _RecepcionState extends State<Recepcion> {
                     DataColumn(label: Text('Causal derivadas al cliente')),
                     DataColumn(label: Text('Acciones')),
                   ],
-                  rows: [
-                    DataRow(cells: [
-                      for (int i = 0; i < _controllersNewTable.length; i++)
-                        DataCell(
-                          SizedBox(
-                            width: 150,
-                            child: TextField(
-                              controller: _controllersNewTable[i],
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                        ),
-                      DataCell(
-                        IconButton(
-                          icon: const Icon(Icons.save),
-                          color: Colors.blue,
-                          onPressed: () {
-                            // Guarda los datos de la fila
-                            List<String> rowData = [];
-                            for (var i = 0;
-                                i < _controllersNewTable.length;
-                                i++) {
-                              rowData.add(_controllersNewTable[i].text);
-                            }
-                            // Crea una nueva fila con los datos ingresados
-                            DataRow newRow = DataRow(cells: [
-                              for (int i = 0; i < rowData.length; i++)
-                                DataCell(
-                                  Text(rowData[i]),
-                                ),
-                              const DataCell(
-                                Icon(Icons.done),
+                  rows: _data
+                      .asMap()
+                      .map((rowIndex, row) {
+                        return MapEntry(
+                          rowIndex,
+                          DataRow(cells: [
+                            DataCell(Text(row['fecha'].toString())),
+                            DataCell(Text(_getValueOrDefault(row['deposito'])
+                                .toStringAsFixed(2))),
+                            DataCell(Text(_getValueOrDefault(row['plataforma'])
+                                .toStringAsFixed(2))),
+                            DataCell(Text(_getValueOrDefault(row['piscina'])
+                                .toStringAsFixed(2))),
+                            DataCell(Text(_getValueOrDefault(row['balsa'])
+                                .toStringAsFixed(2))),
+                            DataCell(Text(
+                                _getValueOrDefault(row['total_general'])
+                                    .toStringAsFixed(2))),
+                            DataCell(Text(_getValueOrDefault(row['ingreso_dia'])
+                                .toStringAsFixed(2))),
+                            DataCell(Text(
+                                _getValueOrDefault(row['ingreso_noche'])
+                                    .toStringAsFixed(2))),
+                            DataCell(Text(
+                                _getValueOrDefault(row['cantidad_camiones_dia'])
+                                    .toStringAsFixed(2))),
+                            DataCell(Text(_getValueOrDefault(
+                                    row['cantidad_camiones_noche'])
+                                .toStringAsFixed(2))),
+                            DataCell(
+                              TextField(
+                                controller: TextEditingController(
+                                    text: _getValueOrDefault(
+                                            row['camiones_kanay_dia'])
+                                        .toString()),
+                                onChanged: (value) {
+                                  _updateValue(
+                                      rowIndex, 'camiones_kanay_dia', value);
+                                },
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder()),
                               ),
-                            ]);
-                            // Agrega la nueva fila a la lista de filas de la tabla
-                            setState(() {
-                              _dataRows.add(newRow);
-                            });
-                          },
-                        ),
-                      ),
-                    ]),
-                  ],
+                            ),
+                            DataCell(
+                              TextField(
+                                controller: TextEditingController(
+                                    text: _getValueOrDefault(
+                                            row['camiones_kanay_noche'])
+                                        .toString()),
+                                onChanged: (value) {
+                                  _updateValue(
+                                      rowIndex, 'camiones_kanay_noche', value);
+                                },
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder()),
+                              ),
+                            ),
+                            DataCell(Text(
+                                _getValueOrDefault(row['camiones_terceros_dia'])
+                                    .toStringAsFixed(2))),
+                            DataCell(Text(_getValueOrDefault(
+                                    row['camiones_terceros_noche'])
+                                .toStringAsFixed(2))),
+                            DataCell(Text(_getValueOrDefault(row[
+                                    'cantidad_caunidad_supera_tiempomiones_noche'])
+                                .toStringAsFixed(
+                                    2))), // Este campo se actualizará automáticamente
+                            DataCell(
+                              TextField(
+                                controller: TextEditingController(
+                                    text: _getValueOrDefault(
+                                            row['causal_operativas'])
+                                        .toString()),
+                                onSubmitted: (value) => _updateValue(
+                                    rowIndex, 'causal_operativas', value),
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder()),
+                              ),
+                            ),
+                            DataCell(
+                              TextField(
+                                controller: TextEditingController(
+                                    text: _getValueOrDefault(
+                                            row['causal_administrativas'])
+                                        .toString()),
+                                onSubmitted: (value) => _updateValue(
+                                    rowIndex, 'causal_administrativas', value),
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder()),
+                              ),
+                            ),
+                            DataCell(
+                              TextField(
+                                controller: TextEditingController(
+                                    text: _getValueOrDefault(
+                                            row['causal_derivadas'])
+                                        .toString()),
+                                onSubmitted: (value) => _updateValue(
+                                    rowIndex, 'causal_derivadas', value),
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder()),
+                              ),
+                            ),
+                            DataCell(
+                              IconButton(
+                                icon: const Icon(Icons.save),
+                                onPressed: () => _saveRow(rowIndex),
+                              ),
+                            ),
+                          ]),
+                        );
+                      })
+                      .values
+                      .toList(),
                 ),
               ),
-              const SizedBox(height: 20),
-              FloatingActionButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: const Text('Opciones'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ListTile(
-                              title: const Text(
-                                  'DISTRIBUCIÓN DE INGRESO DE CAMIONES'),
-                              onTap: () {
-                                // Acción al seleccionar la opción 1...
-                                Navigator.pop(context);
-                              },
-                            ),
-                            ListTile(
-                              title: const Text(
-                                  'CANTIDAD DE CAMIONES QUE INGRESAN AL ECOCENTRO'),
-                              onTap: () {
-                                // Acción al seleccionar la opción 2...
-                                Navigator.pop(context);
-                              },
-                            ),
-                            ListTile(
-                              title: const Text('CAMIONES - ACUM.'),
-                              onTap: () {
-                                // Acción al seleccionar la opción 2...
-                                Navigator.pop(context);
-                              },
-                            ),
-                            ListTile(
-                              title: const Text('TONELADAS'),
-                              onTap: () {
-                                // Acción al seleccionar la opción 2...
-                                Navigator.pop(context);
-                              },
-                            ),
-                            ListTile(
-                              title:
-                                  const Text('INGRESO DE RESIDUOS ACUM. (Ton)'),
-                              onTap: () {
-                                // Acción al seleccionar la opción 2...
-                                Navigator.pop(context);
-                              },
-                            ),
-                            ListTile(
-                              title: const Text(
-                                  'Demora en la atención de unidades'),
-                              onTap: () {
-                                // Acción al seleccionar la opción 2...
-                                Navigator.pop(context);
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-                child: const Icon(Icons.list),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

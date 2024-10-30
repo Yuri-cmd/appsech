@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -14,14 +16,14 @@ class _EditHrState extends State<EditHr> {
   final _formKey = GlobalKey<FormState>();
 
   // Controladores de los campos del formulario
-  TextEditingController _fechaController = TextEditingController();
-  TextEditingController _semanaController = TextEditingController();
-  TextEditingController _mesController = TextEditingController();
-  TextEditingController _maquinariaController = TextEditingController();
-  TextEditingController _operadorController = TextEditingController();
-  TextEditingController _horometroiController = TextEditingController();
-  TextEditingController _horometrofController = TextEditingController();
-  TextEditingController _hrtController = TextEditingController();
+  final TextEditingController _fechaController = TextEditingController();
+  final TextEditingController _semanaController = TextEditingController();
+  final TextEditingController _mesController = TextEditingController();
+  final TextEditingController _maquinariaController = TextEditingController();
+  final TextEditingController _operadorController = TextEditingController();
+  final TextEditingController _horometroiController = TextEditingController();
+  final TextEditingController _horometrofController = TextEditingController();
+  final TextEditingController _hrtController = TextEditingController();
 
   @override
   void initState() {
@@ -82,7 +84,7 @@ class _EditHrState extends State<EditHr> {
       } else {
         // Mostrar error si falla
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar el registro')),
+          const SnackBar(content: Text('Error al guardar el registro')),
         );
       }
     }
@@ -103,7 +105,7 @@ class _EditHrState extends State<EditHr> {
             children: [
               TextFormField(
                 controller: _fechaController,
-                decoration: InputDecoration(labelText: 'Fecha'),
+                decoration: const InputDecoration(labelText: 'Fecha'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Este campo es obligatorio';
@@ -113,31 +115,31 @@ class _EditHrState extends State<EditHr> {
               ),
               TextFormField(
                 controller: _semanaController,
-                decoration: InputDecoration(labelText: 'Semana'),
+                decoration: const InputDecoration(labelText: 'Semana'),
               ),
               TextFormField(
                 controller: _mesController,
-                decoration: InputDecoration(labelText: 'Mes'),
+                decoration: const InputDecoration(labelText: 'Mes'),
               ),
               TextFormField(
                 controller: _maquinariaController,
-                decoration: InputDecoration(labelText: 'Maquinaria'),
+                decoration: const InputDecoration(labelText: 'Maquinaria'),
               ),
               TextFormField(
                 controller: _operadorController,
-                decoration: InputDecoration(labelText: 'Operador'),
+                decoration: const InputDecoration(labelText: 'Operador'),
               ),
               TextFormField(
                 controller: _horometroiController,
-                decoration: InputDecoration(labelText: 'Horometro Inicio'),
+                decoration: const InputDecoration(labelText: 'Horometro Inicio'),
               ),
               TextFormField(
                 controller: _horometrofController,
-                decoration: InputDecoration(labelText: 'Horometro Final'),
+                decoration: const InputDecoration(labelText: 'Horometro Final'),
               ),
               TextFormField(
                 controller: _hrtController,
-                decoration: InputDecoration(labelText: 'Hr Trabajadas'),
+                decoration: const InputDecoration(labelText: 'Hr Trabajadas'),
               ),
               const SizedBox(height: 20),
               ElevatedButton(

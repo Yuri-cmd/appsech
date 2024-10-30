@@ -1,9 +1,11 @@
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 
 class ActivityModal extends StatefulWidget {
   final double totalHours; // Horas ingresadas en el formulario principal
 
-  ActivityModal({required this.totalHours});
+  const ActivityModal({super.key, required this.totalHours});
 
   @override
   _ActivityModalState createState() => _ActivityModalState();
@@ -54,14 +56,14 @@ class _ActivityModalState extends State<ActivityModal> {
             decoration: const InputDecoration(labelText: 'Horas'),
             keyboardType: TextInputType.number,
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text('Horas restantes: $_remainingHours'),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           ElevatedButton(
             onPressed: _addActivity,
             child: const Text('Agregar'),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Expanded(
             child: ListView.builder(
               itemCount: _activities.length,

@@ -34,8 +34,8 @@ class DataModel {
   final String ccostoCode;
   final String ccCesionInternaCode;
   final String pesaje;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final String createdAt;
+  final String updatedAt;
 
   DataModel({
     required this.id,
@@ -114,8 +114,8 @@ class DataModel {
       ccostoCode: json['ccosto_code'] ?? '',
       ccCesionInternaCode: json['cc_cesion_interna_code'] ?? '',
       pesaje: json['pesaje'] ?? '',
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      createdAt: json['created_at'] ?? '',
+      updatedAt: json['updated_at'] ?? '',
     );
   }
 }

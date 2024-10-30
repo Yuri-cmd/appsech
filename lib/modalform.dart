@@ -1,7 +1,10 @@
+// ignore_for_file: unused_field, use_build_context_synchronously, library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 import 'package:appsech/horometro.dart';
 import 'package:appsech/api/api_service.dart';
 import 'package:intl/intl.dart';
+import 'package:appsech/helpers/form_helpers.dart';
 
 class FormModal extends StatefulWidget {
   const FormModal({super.key});
@@ -19,18 +22,14 @@ class _FormModalState extends State<FormModal> {
   String? _maq;
   String? _propiedad;
   String? _operador;
-  String? _horometroi;
-  String? _horometrof;
-  String? _costoAlquilerV;
-  String? _costoOperador;
-  String? _costoAlquilerE;
-  String? _costoRetro;
-  String? _costoMont;
-  String? _costoTotal;
-  String? _budget;
-  String? _hextras;
-  String? _horas;
-
+  String _horometroi = '';
+  String _horometrof = '';
+  double _horas = 0.0;
+  double _horasUsadas = 0.0;
+  String? _nviajes = '';
+  String? _destino = '';
+  String? _cantidad = '';
+  String? _nuevoOperario;
   // Variables para el modal
   String? _horasActividad;
   String? _actividad;
@@ -39,6 +38,15 @@ class _FormModalState extends State<FormModal> {
   String? _ubicacion;
   String? _ubicaciong;
   String? _ubicacionT;
+  // Carga de Combustible
+  bool _cargaCombustible =
+      false; // Valor por defecto para si se carga combustible o no
+  String? _tipoCombustible; // Almacena el tipo de combustible
+  final List<String> _opcionesCombustible = [
+    'GLP-unid',
+    'diesel-gl',
+    'gasolina'
+  ]; // Opciones de tipo de combustible
 
   List<String> _maquinariaOptions = [];
   List<String> _actividadOptions = [];
@@ -48,6 +56,11 @@ class _FormModalState extends State<FormModal> {
   List<String> _ubicacionesGenerales = [];
   final TextEditingController _maqController = TextEditingController();
   final List<Map<String, String?>> _actividadesAgregadas = [];
+
+  List<String> _operarios = [];
+  bool _otrosSelected = false;
+  final TextEditingController _nuevoOperarioController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -80,102 +93,100 @@ class _FormModalState extends State<FormModal> {
   }
 
   Future<void> _fetchMaquinariaOptions() async {
-    try {
-      final options = await ApiService.fetchMaquinariaOptions();
-      setState(() {
-        _maquinariaOptions = options;
-      });
-    } catch (e) {
-      print('Error fetching maquinaria options: $e');
-    }
+    final options = await FormModalHelper.fetchMaquinariaOptions();
+    setState(() {
+      _maquinariaOptions = options;
+    });
   }
 
   Future<void> _fetchMaquinariaDetails(String maquinaria) async {
-    try {
-      final details = await ApiService.fetchMaquinariaDetails(maquinaria);
+    final detailsList =
+        await FormModalHelper.fetchMaquinariaDetails(maquinaria);
+
+    if (detailsList.isNotEmpty) {
+      final details = detailsList[0]; // Toma el primer objeto de la lista
+      _fetchOperarios(maquinaria);
+
       setState(() {
         _selectedMaquinariaDetails = details;
         _maq = details['tipo'];
         _propiedad = details['propiedad'];
-        _maqController.text = _maq ?? ''; // Actualiza el controlador
-        _fetchActividades(
-            maquinaria); // Fetch actividades when maquinaria changes
+        _maqController.text = _maq ?? '';
+        _fetchActividades(maquinaria);
       });
-    } catch (e) {
-      print('Error fetching maquinaria details: $e');
+    } else {
+      // print('No details found for maquinaria');
     }
   }
 
   Future<void> _fetchActividades(String maquinaria) async {
-    try {
-      final actividades =
-          await ApiService.fetchMaquinariaActividades(maquinaria);
-      setState(() {
-        _actividadOptions = actividades;
-      });
-    } catch (e) {
-      print('Error fetching actividades: $e');
-    }
+    final actividades = await FormModalHelper.fetchActividades(maquinaria);
+    setState(() {
+      _actividadOptions = actividades;
+    });
   }
 
   Future<void> _fetchActividadGenerals(String actividad) async {
-    try {
-      final actividadGeneralsResponse =
-          await ApiService.fetchActividadGeneral(actividad);
-      print(
-          'Actividad Generals Response: $actividadGeneralsResponse'); // Depuración
-
-      setState(() {
-        _actividadGenerals = actividadGeneralsResponse;
-      });
-    } catch (e) {
-      print('Error fetching actividad general: $e');
-    }
+    final actividadGeneralsResponse =
+        await FormModalHelper.fetchActividadGenerals(actividad);
+    setState(() {
+      _actividadGenerals = actividadGeneralsResponse;
+    });
   }
 
   Future<void> _fetchZonas() async {
-    try {
-      final zonasResponse = await ApiService.fetchZonas();
-      setState(() {
-        _zonas = zonasResponse; // Lista de Map<String, dynamic>
-      });
-    } catch (e) {
-      print('Error fetching zonas: $e');
-    }
+    final zonasResponse = await FormModalHelper.fetchZonas();
+    setState(() {
+      _zonas = zonasResponse;
+    });
   }
 
   Future<void> _fetchDetalleZona(String? ubicacionId) async {
     if (ubicacionId == null) return;
-    try {
-      final zonasDetalle = await ApiService.fetchZonaDetalle(ubicacionId);
-      print('pure $zonasDetalle');
-      setState(() {
-        _ubicacionesGenerales = zonasDetalle;
-      });
-    } catch (e) {
-      print('Error fetching actividades: $e');
-    }
+    final zonasDetalle = await FormModalHelper.fetchDetalleZona(ubicacionId);
+    setState(() {
+      _ubicacionesGenerales = zonasDetalle;
+    });
+  }
+
+  // Función para obtener operarios de la API
+  Future<void> _fetchOperarios(String maquinaria) async {
+    final operarios = await ApiService.fetchOperarioMaquinaria(maquinaria);
+    setState(() {
+      _operarios = operarios;
+      _operarios.add('Otros'); // Agregar la opción "Otros"
+    });
   }
 
   Future<void> _sendFormData() async {
     final formData = {
-      'fecha': DateFormat('dd/MM/yyyy').format(_selectedDate),
+      'fecha': FormModalHelper.formatFecha(_selectedDate),
       'semana': _semana ?? '',
       'mes': _mes ?? '',
       'maquinaria': _maquinaria ?? '',
       'maq': _maq ?? '',
       'propiedad': _propiedad ?? '',
       'operador': _operador ?? '',
-      'horometroi': _horometroi ?? '',
-      'horometrof': _horometrof ?? '',
-      'costoAlquilerV': _costoAlquilerV ?? '',
-      'costoOperador': _costoOperador ?? '',
-      'costoAlquilerE': _costoAlquilerE ?? '',
-      'costoRetro': _costoRetro ?? '',
-      'costoMont': _costoMont ?? '',
-      'costoTotal': _costoTotal ?? '',
-      'budget': _budget ?? '',
-      'hextras': _hextras ?? '',
+      'horometroi': _horometroi,
+      'horometrof': _horometrof,
+      'horas': _horas,
+      'nviajes': _nviajes ?? '',
+      'destino': _destino ?? '',
+      'cargaCombustible': _cargaCombustible,
+      'tipoCombustible': _tipoCombustible ?? '',
+      'cantidad': _cantidad ?? '',
+      'nuevoOperario': _nuevoOperario ?? '',
+      // Campos adicionales del modal de detalles
+      'actividades': _actividadesAgregadas
+          .map((actividad) => {
+                'horaActividad': actividad['horaActividad'],
+                'actividad': actividad['actividad'],
+                'actividadGeneral': actividad['actividadGeneral'],
+                'descripcion': actividad['descripcion'],
+                'ubicacion': actividad['ubicacion'],
+                'ubicaciong': actividad['ubicaciong'],
+              })
+          .toList(),
     };
 
     try {
@@ -203,7 +214,7 @@ class _FormModalState extends State<FormModal> {
         },
       );
     } catch (e) {
-      print('Error saving form data: $e');
+      // print('Error saving form data: $e');
     }
   }
 
@@ -227,6 +238,7 @@ class _FormModalState extends State<FormModal> {
                   const SizedBox(height: 10),
                   TextFormField(
                     decoration: const InputDecoration(labelText: 'Horas'),
+                    keyboardType: TextInputType.number,
                     onChanged: (value) {
                       setState(() {
                         _horasActividad = value;
@@ -281,7 +293,6 @@ class _FormModalState extends State<FormModal> {
                     decoration: const InputDecoration(labelText: 'Ubicación'),
                     value: _ubicacion,
                     items: _zonas.map<DropdownMenuItem<String>>((zona) {
-                      var zonaT = zona['nombre'];
                       return DropdownMenuItem<String>(
                         value: zona['id'],
                         child: Text(zona['nombre']),
@@ -290,7 +301,8 @@ class _FormModalState extends State<FormModal> {
                     onChanged: (String? newValue) {
                       setState(() {
                         _ubicacion = newValue;
-                        _ubicacionT = _ubicacionT;
+                        _ubicacionT = _zonas.firstWhere(
+                            (zona) => zona['id'] == newValue)['nombre'];
                       });
                       _fetchDetalleZona(
                           newValue); // Asegúrate de actualizar las ubicaciones generales
@@ -315,24 +327,48 @@ class _FormModalState extends State<FormModal> {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      if (_actividad != null) {
-                        setState(() {
-                          _actividadesAgregadas.add({
-                            'horaActividad': _horasActividad,
-                            'actividad': _actividad,
-                            'actividadGeneral': _actividadg,
-                            'descripcion': _descripcion,
-                            'ubicacion': _ubicacionT,
-                            'ubicaciong': _ubicaciong,
+                      double horasActividad =
+                          double.tryParse(_horasActividad ?? '0') ?? 0.0;
+                      if (_actividad != null && horasActividad > 0) {
+                        if (_horasUsadas + horasActividad <= _horas) {
+                          setState(() {
+                            _actividadesAgregadas.add({
+                              'horaActividad': _horasActividad,
+                              'actividad': _actividad,
+                              'actividadGeneral': _actividadg,
+                              'descripcion': _descripcion,
+                              'ubicacion': _ubicacionT,
+                              'ubicaciong': _ubicaciong,
+                            });
+                            _horasUsadas += horasActividad;
+                            _actividad = null;
+                            _actividadg = null;
+                            _descripcion = null;
+                            _ubicacion = null;
+                            _ubicaciong = null;
+                            _horasActividad = null;
                           });
-                          _actividad = null;
-                          _actividadg = null;
-                          _descripcion = null;
-                          _ubicacion = null;
-                          _ubicaciong = null;
-                          _horasActividad = null;
-                        });
-                        Navigator.pop(context);
+                          Navigator.pop(context);
+                        } else {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: const Text('Error'),
+                                content: const Text(
+                                    'Las horas asignadas superan el total disponible.'),
+                                actions: <Widget>[
+                                  TextButton(
+                                    child: const Text('OK'),
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        }
                       }
                     },
                     child: const Text('Agregar Actividad'),
@@ -344,6 +380,12 @@ class _FormModalState extends State<FormModal> {
         );
       },
     );
+  }
+
+  void _updateHoras() {
+    setState(() {
+      _horas = FormModalHelper.calculateHoras(_horometroi, _horometrof);
+    });
   }
 
   @override
@@ -360,6 +402,8 @@ class _FormModalState extends State<FormModal> {
             children: [
               const Text('Llena los campos requeridos:'),
               const SizedBox(height: 16.0),
+
+              // Fecha
               InkWell(
                 onTap: () => _selectDate(context),
                 child: InputDecorator(
@@ -368,7 +412,6 @@ class _FormModalState extends State<FormModal> {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       Text(
                         DateFormat('dd/MM/yyyy').format(_selectedDate),
@@ -378,6 +421,8 @@ class _FormModalState extends State<FormModal> {
                   ),
                 ),
               ),
+
+              // Maquinaria
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Maquinaria'),
                 value: _maquinaria,
@@ -396,10 +441,41 @@ class _FormModalState extends State<FormModal> {
                   );
                 }).toList(),
               ),
+
+              // MAQ
               TextFormField(
                 controller: _maqController,
                 decoration: const InputDecoration(labelText: 'MAQ'),
+                onChanged: (value) {
+                  setState(() {
+                    _maqController.text = value;
+                  });
+                },
               ),
+
+              // Mostrar campos adicionales si MAQ es volquete
+              if (_maqController.text.toLowerCase() == 'volquete') ...[
+                const SizedBox(height: 16.0),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'N° de viajes'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    setState(() {
+                      _nviajes = value;
+                    });
+                  },
+                ),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Destino'),
+                  onChanged: (value) {
+                    setState(() {
+                      _destino = value;
+                    });
+                  },
+                ),
+              ],
+
+              // Propia/Alquilada
               DropdownButtonFormField<String>(
                 decoration:
                     const InputDecoration(labelText: 'Propia/Alquilada'),
@@ -416,45 +492,132 @@ class _FormModalState extends State<FormModal> {
                   );
                 }).toList(),
               ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Operador'),
-                onChanged: (value) {
+
+              // Operador
+              // Dropdown de operarios
+              DropdownButtonFormField<String>(
+                value: _operador,
+                onChanged: (String? newValue) {
                   setState(() {
-                    _operador = value;
+                    _operador = newValue;
+                    _otrosSelected =
+                        newValue == 'Otros'; // Verificar si seleccionó "Otros"
                   });
                 },
+                items: _operarios.map((String operario) {
+                  return DropdownMenuItem<String>(
+                    value: operario,
+                    child: Text(operario),
+                  );
+                }).toList(),
+                decoration: const InputDecoration(labelText: 'Operador'),
               ),
+
+              // Mostrar el campo para un nuevo operario si se selecciona "Otros"
+              if (_otrosSelected)
+                TextFormField(
+                  decoration: const InputDecoration(
+                      labelText: 'Nombre del nuevo Operador'),
+                  onChanged: (value) {
+                    setState(() {
+                      _nuevoOperario = value;
+                    });
+                  },
+                ),
+
+              // Horómetro Inicial
               TextFormField(
                 decoration:
                     const InputDecoration(labelText: 'Horómetro Inicial'),
+                keyboardType: TextInputType.number,
                 onChanged: (value) {
                   setState(() {
                     _horometroi = value;
                   });
+                  _updateHoras();
                 },
               ),
+
+              // Horómetro Final
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Horómetro Final'),
+                keyboardType: TextInputType.number,
                 onChanged: (value) {
                   setState(() {
                     _horometrof = value;
                   });
+                  _updateHoras();
                 },
               ),
+
+              // Horas calculadas
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Horas'),
-                onChanged: (value) {
+                controller: TextEditingController(text: _horas.toString()),
+                readOnly: true,
+              ),
+
+              // Radio buttons para combustible
+              const SizedBox(height: 16.0),
+              const Text('¿Cargo combustible?'),
+              RadioListTile<bool>(
+                title: const Text('Sí'),
+                value: true,
+                groupValue: _cargaCombustible,
+                onChanged: (bool? value) {
                   setState(() {
-                    _horas =
-                        value; // Corrige aquí el campo que deseas actualizar
+                    _cargaCombustible = value!;
                   });
                 },
               ),
+              RadioListTile<bool>(
+                title: const Text('No'),
+                value: false,
+                groupValue: _cargaCombustible,
+                onChanged: (bool? value) {
+                  setState(() {
+                    _cargaCombustible = value!;
+                  });
+                },
+              ),
+
+              // Mostrar opciones de combustible si selecciona "Sí"
+              if (_cargaCombustible) ...[
+                DropdownButtonFormField<String>(
+                  decoration:
+                      const InputDecoration(labelText: 'Tipo de Combustible'),
+                  value: _tipoCombustible,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _tipoCombustible = newValue!;
+                    });
+                  },
+                  items:
+                      ['GLP-unid', 'diesel-gl', 'gasolina'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+                TextFormField(
+                  decoration: const InputDecoration(
+                      labelText: 'Cantidad de Combustible'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    setState(() {
+                      _cantidad = value;
+                    });
+                  },
+                ),
+              ],
+
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _showDetailsModal,
                 child: const Text('Agregar Actividad'),
               ),
+
               const SizedBox(height: 16.0),
               ListView.builder(
                 shrinkWrap: true,

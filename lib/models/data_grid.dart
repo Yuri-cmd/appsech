@@ -5,9 +5,11 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 class DataModelDataSource extends DataGridSource {
   List<DataModel> data;
   List<DataModel> filteredData = [];
+
   DataModelDataSource(this.data) {
     filteredData.addAll(data); // Inicialmente llena los datos filtrados
   }
+
   // Método para aplicar el filtro según el texto de búsqueda
   void applyFilter(String text) {
     filteredData.clear();
@@ -28,79 +30,94 @@ class DataModelDataSource extends DataGridSource {
   @override
   List<DataGridRow> get rows => filteredData
       .map<DataGridRow>((model) => DataGridRow(cells: [
-            DataGridCell<String>(columnName: 'ID', value: model.id.toString()),
             DataGridCell<String>(
-                columnName: 'Fecha', value: model.fecha.toString()),
+                columnName: 'ID', value: model.id.toString() ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Hora Ingreso', value: model.horaIngreso),
+                columnName: 'Fecha', value: model.fecha.toString() ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Hora Salida', value: model.horaSalida),
+                columnName: 'Hora Ingreso', value: model.horaIngreso ?? 'N/A'),
+            DataGridCell<String>(
+                columnName: 'Hora Salida', value: model.horaSalida ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'No. Pedido de Venta',
-                value: model.noPedidoDeVenta),
+                value: model.noPedidoDeVenta ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'No. Boleta', value: model.noBoleta),
+                columnName: 'No. Boleta', value: model.noBoleta ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Código Residuo', value: model.codigoResiduo),
-            DataGridCell<String>(columnName: 'Residuo', value: model.residuo),
+                columnName: 'Código Residuo',
+                value: model.codigoResiduo ?? 'N/A'),
+            DataGridCell<String>(
+                columnName: 'Residuo', value: model.residuo ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'Nombre Producto Cliente',
-                value: model.nombreProductoCliente),
+                value: model.nombreProductoCliente ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'Clasificación Sigersol',
-                value: model.clasificacionSigersol),
-            DataGridCell<String>(columnName: 'Cliente', value: model.cliente),
-            DataGridCell<String>(columnName: 'Gestor', value: model.gestor),
+                value: model.clasificacionSigersol ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Transportista', value: model.transportista),
+                columnName: 'Cliente', value: model.cliente ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Generador', value: model.generador),
+                columnName: 'Gestor', value: model.gestor ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Guía Remitente', value: model.guiaRemitente),
+                columnName: 'Transportista',
+                value: model.transportista ?? 'N/A'),
+            DataGridCell<String>(
+                columnName: 'Generador', value: model.generador ?? 'N/A'),
+            DataGridCell<String>(
+                columnName: 'Guía Remitente',
+                value: model.guiaRemitente ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'Guía Transportista',
-                value: model.guiaTransportista),
-            DataGridCell<String>(columnName: 'Cantidad', value: model.cantidad),
+                value: model.guiaTransportista ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Unidad Venta', value: model.unidadVenta),
+                columnName: 'Cantidad', value: model.cantidad ?? 'N/A'),
+            DataGridCell<String>(
+                columnName: 'Unidad Venta', value: model.unidadVenta ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'Valor Unitario',
-                value: model.valorUnitario.toString()),
+                value: model.valorUnitario.toString() ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Valor Total', value: model.valorTotal.toString()),
+                columnName: 'Valor Total',
+                value: model.valorTotal.toString() ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Manifiesto', value: model.manifiesto),
-            DataGridCell<String>(columnName: 'Placa', value: model.placa),
+                columnName: 'Manifiesto', value: model.manifiesto ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Zona de Recepción', value: model.zonaDeRecepcion),
+                columnName: 'Placa', value: model.placa ?? 'N/A'),
+            DataGridCell<String>(
+                columnName: 'Zona de Recepción',
+                value: model.zonaDeRecepcion ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'Nombre Tratamiento',
-                value: model.nombreTratamiento),
+                value: model.nombreTratamiento ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Zona Tratamiento', value: model.zonaTratamiento),
-            DataGridCell<String>(columnName: 'pH', value: model.ph.toString()),
+                columnName: 'Zona Tratamiento',
+                value: model.zonaTratamiento ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Inflamabilidad', value: model.inflamabilidad),
+                columnName: 'pH', value: model.ph.toString() ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Coordenadas', value: model.coordenadas),
+                columnName: 'Inflamabilidad',
+                value: model.inflamabilidad ?? 'N/A'),
+            DataGridCell<String>(
+                columnName: 'Coordenadas', value: model.coordenadas ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'Cantidad Contenedor',
-                value: model.cantidadContenedor),
+                value: model.cantidadContenedor ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Tipo Contenedor', value: model.tipoContenedor),
+                columnName: 'Tipo Contenedor',
+                value: model.tipoContenedor ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'Contenedores Adicionales',
-                value: model.contenedoresAdicionales),
+                value: model.contenedoresAdicionales ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'Centro de Responsabilidad',
-                value: model.centroDeResponsabilidad),
+                value: model.centroDeResponsabilidad ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'CCosto Code', value: model.ccostoCode),
+                columnName: 'CCosto Code', value: model.ccostoCode ?? 'N/A'),
             DataGridCell<String>(
                 columnName: 'CC Cesion Interna Code',
-                value: model.ccCesionInternaCode),
+                value: model.ccCesionInternaCode ?? 'N/A'),
             DataGridCell<String>(
-                columnName: 'Pesaje', value: model.pesaje.toString()),
+                columnName: 'Pesaje', value: model.pesaje.toString() ?? 'N/A'),
           ]))
       .toList();
 
