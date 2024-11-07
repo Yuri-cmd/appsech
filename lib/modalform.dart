@@ -1,13 +1,14 @@
 // ignore_for_file: unused_field, use_build_context_synchronously, library_private_types_in_public_api
 
+import 'package:appsech/screens/actividad_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:appsech/horometro.dart';
 import 'package:appsech/api/api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:appsech/helpers/form_helpers.dart';
 
 class FormModal extends StatefulWidget {
-  const FormModal({super.key});
+  final int? registro;
+  const FormModal({Key? key, this.registro}) : super(key: key);
 
   @override
   _FormModalState createState() => _FormModalState();
@@ -16,31 +17,15 @@ class FormModal extends StatefulWidget {
 class _FormModalState extends State<FormModal> {
   final List<String> _opcionesPropiaAlquilada = ['Propia', 'Alquilada'];
   DateTime _selectedDate = DateTime.now();
-  String? _semana;
-  String? _mes;
-  String? _maquinaria;
-  String? _maq;
-  String? _propiedad;
-  String? _operador;
-  String _horometroi = '';
+  String? _semana, _mes, _maq, _propiedad, _operador;
+  String _maquinaria = '';
+  String? _horometroi;
   String _horometrof = '';
   double _horas = 0.0;
-  double _horasUsadas = 0.0;
-  String? _nviajes = '';
-  String? _destino = '';
-  String? _cantidad = '';
-  String? _nuevoOperario;
-  // Variables para el modal
-  String? _horasActividad;
-  String? _actividad;
-  String? _actividadg;
-  String? _descripcion;
-  String? _ubicacion;
-  String? _ubicaciong;
-  String? _ubicacionT;
+  String? _nviajes, _destino, _cantidad, _nuevoOperario;
+
   // Carga de Combustible
-  bool _cargaCombustible =
-      false; // Valor por defecto para si se carga combustible o no
+  bool _cargaCombustible = false;
   String? _tipoCombustible; // Almacena el tipo de combustible
   final List<String> _opcionesCombustible = [
     'GLP-unid',
@@ -49,11 +34,7 @@ class _FormModalState extends State<FormModal> {
   ]; // Opciones de tipo de combustible
 
   List<String> _maquinariaOptions = [];
-  List<String> _actividadOptions = [];
-  List<String> _actividadGenerals = [];
-  List<Map<String, dynamic>> _zonas = [];
   Map<String, dynamic> _selectedMaquinariaDetails = {};
-  List<String> _ubicacionesGenerales = [];
   final TextEditingController _maqController = TextEditingController();
   final List<Map<String, String?>> _actividadesAgregadas = [];
 
@@ -62,19 +43,31 @@ class _FormModalState extends State<FormModal> {
   final TextEditingController _nuevoOperarioController =
       TextEditingController();
 
+  final TextEditingController _horometroiController = TextEditingController();
+  final TextEditingController _horometrofController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _fetchMaquinariaOptions();
-    _fetchZonas();
+
+    if (widget.registro != null) {
+      _loadDataForEdit(widget.registro ?? 0);
+    }
+
     _maqController.addListener(() {
       _maq = _maqController.text;
+    });
+    _horometroiController.addListener(() {
+      // Solo actualiza la variable _horometroi sin establecer el texto del controlador de nuevo
+      _horometroi = _horometroiController.text;
     });
   }
 
   @override
   void dispose() {
     _maqController.dispose();
+    _horometroiController.dispose();
     super.dispose();
   }
 
@@ -102,9 +95,10 @@ class _FormModalState extends State<FormModal> {
   Future<void> _fetchMaquinariaDetails(String maquinaria) async {
     final detailsList =
         await FormModalHelper.fetchMaquinariaDetails(maquinaria);
+    final horometro = await ApiService.lastHorometro(maquinaria);
 
     if (detailsList.isNotEmpty) {
-      final details = detailsList[0]; // Toma el primer objeto de la lista
+      final details = detailsList[0];
       _fetchOperarios(maquinaria);
 
       setState(() {
@@ -112,44 +106,17 @@ class _FormModalState extends State<FormModal> {
         _maq = details['tipo'];
         _propiedad = details['propiedad'];
         _maqController.text = _maq ?? '';
-        _fetchActividades(maquinaria);
+
+        if (widget.registro == null) {
+          // Verifica y asigna el valor de horómetro adecuadamente
+          _horometroi = horometro.replaceAll('"', '').trim(); // Limpia el valor
+          // Asigna al controlador solo si el valor no es nulo
+          _horometroiController.text = _horometroi ?? '0.0';
+        }
       });
-    } else {
-      // print('No details found for maquinaria');
     }
   }
 
-  Future<void> _fetchActividades(String maquinaria) async {
-    final actividades = await FormModalHelper.fetchActividades(maquinaria);
-    setState(() {
-      _actividadOptions = actividades;
-    });
-  }
-
-  Future<void> _fetchActividadGenerals(String actividad) async {
-    final actividadGeneralsResponse =
-        await FormModalHelper.fetchActividadGenerals(actividad);
-    setState(() {
-      _actividadGenerals = actividadGeneralsResponse;
-    });
-  }
-
-  Future<void> _fetchZonas() async {
-    final zonasResponse = await FormModalHelper.fetchZonas();
-    setState(() {
-      _zonas = zonasResponse;
-    });
-  }
-
-  Future<void> _fetchDetalleZona(String? ubicacionId) async {
-    if (ubicacionId == null) return;
-    final zonasDetalle = await FormModalHelper.fetchDetalleZona(ubicacionId);
-    setState(() {
-      _ubicacionesGenerales = zonasDetalle;
-    });
-  }
-
-  // Función para obtener operarios de la API
   Future<void> _fetchOperarios(String maquinaria) async {
     final operarios = await ApiService.fetchOperarioMaquinaria(maquinaria);
     setState(() {
@@ -158,228 +125,127 @@ class _FormModalState extends State<FormModal> {
     });
   }
 
-  Future<void> _sendFormData() async {
-    final formData = {
-      'fecha': FormModalHelper.formatFecha(_selectedDate),
-      'semana': _semana ?? '',
-      'mes': _mes ?? '',
-      'maquinaria': _maquinaria ?? '',
-      'maq': _maq ?? '',
-      'propiedad': _propiedad ?? '',
-      'operador': _operador ?? '',
-      'horometroi': _horometroi,
-      'horometrof': _horometrof,
-      'horas': _horas,
-      'nviajes': _nviajes ?? '',
-      'destino': _destino ?? '',
-      'cargaCombustible': _cargaCombustible,
-      'tipoCombustible': _tipoCombustible ?? '',
-      'cantidad': _cantidad ?? '',
-      'nuevoOperario': _nuevoOperario ?? '',
-      // Campos adicionales del modal de detalles
-      'actividades': _actividadesAgregadas
-          .map((actividad) => {
-                'horaActividad': actividad['horaActividad'],
-                'actividad': actividad['actividad'],
-                'actividadGeneral': actividad['actividadGeneral'],
-                'descripcion': actividad['descripcion'],
-                'ubicacion': actividad['ubicacion'],
-                'ubicaciong': actividad['ubicaciong'],
-              })
-          .toList(),
-    };
+  Future<void> _loadDataForEdit(int recordId) async {
+    // Llamada a la API para obtener los datos del registro por ID
+    final existingData = await ApiService.getHorometroOne(recordId);
 
-    try {
-      await ApiService.sendFormData(formData);
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Éxito'),
-            content: const Text('Los datos se guardaron correctamente.'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('OK'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (BuildContext context) => const Horometro(),
-                    ),
-                  );
-                },
-              ),
-            ],
-          );
-        },
-      );
-    } catch (e) {
-      // print('Error saving form data: $e');
+    setState(() {
+      // _selectedDate = DateTime.parse(existingData['fecha']);
+      _semana = existingData['semana'];
+      _mes = existingData['mes'];
+      _maquinaria = existingData['maquinaria'];
+      _maqController.text = existingData['maq'];
+      _propiedad = existingData['propiedad'];
+      _operador = existingData['operador'];
+      _horometroiController.text = existingData['horometroi'].toString();
+      _horometrofController.text = existingData['horometrof'].toString();
+      // _horas = existingData['horas'];
+      _fetchMaquinariaDetails(existingData['maquinaria']);
+      _updateHoras();
+      _nviajes = existingData['nviajes']?.toString() ?? '';
+      _destino = existingData['destino'];
+      _cargaCombustible = existingData['cargaCombustible'] == 1 ? true : false;
+      _tipoCombustible = existingData['tipoCombustible'];
+      // _cantidadfController.text = existingData['cantidad'].toString();
+      _nuevoOperario = existingData['operador'];
+
+      // Limpiar la lista actual y agregar nuevas actividades si existen
+      if (existingData.containsKey('actividades')) {
+        _actividadesAgregadas
+            .clear(); // Limpia las actividades anteriores, si es necesario
+        List<dynamic> actividades =
+            existingData['actividades']; // Asegúrate de que sea una lista
+        for (var actividad in actividades) {
+          if (actividad is Map<String, dynamic>) {
+            // Crear un nuevo mapa asegurándote de que todas las claves son String
+            final Map<String, String?> newActividad = {};
+            actividad.forEach((key, value) {
+              newActividad[key.toString()] =
+                  value?.toString(); // Asegura que el valor sea String
+            });
+            _actividadesAgregadas.add(newActividad);
+          }
+        }
+      }
+    });
+  }
+
+  Future<void> _sendFormData() async {
+    final formData = FormModalHelper.formDateHorometro(
+        _selectedDate,
+        _semana,
+        _mes,
+        _maquinaria,
+        _maq,
+        _propiedad,
+        _operador,
+        _horometroi,
+        _horometrof,
+        _horas,
+        _cargaCombustible,
+        _tipoCombustible,
+        _cantidad,
+        _nuevoOperario,
+        _actividadesAgregadas);
+    await FormModalHelper.sendFormHormetro(formData, context);
+  }
+
+// Método para eliminar una actividad
+  void _deleteActivity(int index) {
+    setState(() {
+      _actividadesAgregadas.removeAt(index);
+    });
+  }
+
+  void _navegarAGrabarActividad() async {
+    final nuevaActividad = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AgregarActividadScreen(
+          maq: _maqController.text.toLowerCase(),
+          maquinaria: _maquinaria,
+          onGuardar: (actividad) {
+            setState(() {
+              // Agrega la nueva actividad a la lista
+              _actividadesAgregadas.add(actividad);
+            });
+          },
+          horas: _horas,
+        ),
+      ),
+    );
+
+    if (nuevaActividad != null) {
+      // Aquí puedes manejar el resultado si es necesario
     }
   }
 
-  void _showDetailsModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled:
-          true, // Asegúrate de que el modal pueda ajustarse al tamaño
-      builder: (BuildContext context) {
-        return FractionallySizedBox(
-          heightFactor: 0.8, // Ajusta la altura del modal si es necesario
-          child: SingleChildScrollView(
-            // Hace que el contenido sea desplazable
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Detalles Adicionales'),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    decoration: const InputDecoration(labelText: 'Horas'),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      setState(() {
-                        _horasActividad = value;
-                      });
-                    },
-                  ),
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Actividad'),
-                    value: _actividad,
-                    onChanged: (String? newValue) async {
-                      if (newValue != null) {
-                        setState(() {
-                          _actividad = newValue;
-                        });
+  void _editActivity(int index) async {
+    // Obtén la actividad que deseas editar
+    final actividad = _actividadesAgregadas[index];
 
-                        // Obtener las actividades generales basadas en la actividad seleccionada
-                        await _fetchActividadGenerals(newValue);
-                      }
-                    },
-                    items: _actividadOptions.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                  ),
-                  DropdownButtonFormField<String>(
-                    decoration:
-                        const InputDecoration(labelText: 'Actividad General'),
-                    value: _actividadg,
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _actividadg = newValue;
-                      });
-                    },
-                    items: _actividadGenerals.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                  ),
-                  TextFormField(
-                    decoration: const InputDecoration(labelText: 'Descripción'),
-                    onChanged: (value) {
-                      setState(() {
-                        _descripcion = value;
-                      });
-                    },
-                  ),
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Ubicación'),
-                    value: _ubicacion,
-                    items: _zonas.map<DropdownMenuItem<String>>((zona) {
-                      return DropdownMenuItem<String>(
-                        value: zona['id'],
-                        child: Text(zona['nombre']),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _ubicacion = newValue;
-                        _ubicacionT = _zonas.firstWhere(
-                            (zona) => zona['id'] == newValue)['nombre'];
-                      });
-                      _fetchDetalleZona(
-                          newValue); // Asegúrate de actualizar las ubicaciones generales
-                    },
-                  ),
-                  DropdownButtonFormField<String>(
-                    decoration:
-                        const InputDecoration(labelText: 'Ubicación General'),
-                    value: _ubicaciong,
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _ubicaciong = newValue;
-                      });
-                    },
-                    items: _ubicacionesGenerales.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      double horasActividad =
-                          double.tryParse(_horasActividad ?? '0') ?? 0.0;
-                      if (_actividad != null && horasActividad > 0) {
-                        if (_horasUsadas + horasActividad <= _horas) {
-                          setState(() {
-                            _actividadesAgregadas.add({
-                              'horaActividad': _horasActividad,
-                              'actividad': _actividad,
-                              'actividadGeneral': _actividadg,
-                              'descripcion': _descripcion,
-                              'ubicacion': _ubicacionT,
-                              'ubicaciong': _ubicaciong,
-                            });
-                            _horasUsadas += horasActividad;
-                            _actividad = null;
-                            _actividadg = null;
-                            _descripcion = null;
-                            _ubicacion = null;
-                            _ubicaciong = null;
-                            _horasActividad = null;
-                          });
-                          Navigator.pop(context);
-                        } else {
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Error'),
-                                content: const Text(
-                                    'Las horas asignadas superan el total disponible.'),
-                                actions: <Widget>[
-                                  TextButton(
-                                    child: const Text('OK'),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        }
-                      }
-                    },
-                    child: const Text('Agregar Actividad'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    // Navega a la pantalla de agregar actividad con los datos de la actividad a editar
+    final updatedActividad = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AgregarActividadScreen(
+          maq: _maqController.text.toLowerCase(),
+          maquinaria: _maquinaria,
+          onGuardar: (actividad) {
+            setState(() {
+              // Actualiza la actividad editada en la lista
+              _actividadesAgregadas[index] = actividad;
+            });
+          },
+          horas: _horas,
+          actividad: actividad, // Pasa la actividad a editar
+        ),
+      ),
     );
+
+    if (updatedActividad != null) {
+      // Aquí puedes manejar el resultado si es necesario
+    }
   }
 
   void _updateHoras() {
@@ -425,7 +291,9 @@ class _FormModalState extends State<FormModal> {
               // Maquinaria
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Maquinaria'),
-                value: _maquinaria,
+                value: _maquinariaOptions.contains(_maquinaria)
+                    ? _maquinaria
+                    : null, // Verificar el valor
                 onChanged: (String? newValue) {
                   if (newValue != null) {
                     setState(() {
@@ -452,29 +320,6 @@ class _FormModalState extends State<FormModal> {
                   });
                 },
               ),
-
-              // Mostrar campos adicionales si MAQ es volquete
-              if (_maqController.text.toLowerCase() == 'volquete') ...[
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'N° de viajes'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    setState(() {
-                      _nviajes = value;
-                    });
-                  },
-                ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Destino'),
-                  onChanged: (value) {
-                    setState(() {
-                      _destino = value;
-                    });
-                  },
-                ),
-              ],
-
               // Propia/Alquilada
               DropdownButtonFormField<String>(
                 decoration:
@@ -527,19 +372,17 @@ class _FormModalState extends State<FormModal> {
 
               // Horómetro Inicial
               TextFormField(
+                controller: _horometroiController,
                 decoration:
                     const InputDecoration(labelText: 'Horómetro Inicial'),
-                keyboardType: TextInputType.number,
                 onChanged: (value) {
                   setState(() {
                     _horometroi = value;
                   });
-                  _updateHoras();
                 },
               ),
-
-              // Horómetro Final
               TextFormField(
+                controller: _horometrofController,
                 decoration: const InputDecoration(labelText: 'Horómetro Final'),
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
@@ -553,7 +396,8 @@ class _FormModalState extends State<FormModal> {
               // Horas calculadas
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Horas'),
-                controller: TextEditingController(text: _horas.toString()),
+                controller: TextEditingController(
+                    text: _horas.toString()), // Mejor cambiar a inicialValue
                 readOnly: true,
               ),
 
@@ -611,13 +455,13 @@ class _FormModalState extends State<FormModal> {
                   },
                 ),
               ],
-
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _showDetailsModal,
-                child: const Text('Agregar Actividad'),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                onPressed: _navegarAGrabarActividad,
+                icon: const Icon(Icons.add,
+                    color: Colors.white), // Icono de agregar
+                label: const Text('Agregar Actividad'),
               ),
-
               const SizedBox(height: 16.0),
               ListView.builder(
                 shrinkWrap: true,
@@ -627,23 +471,36 @@ class _FormModalState extends State<FormModal> {
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8.0),
                     child: ListTile(
-                      title: Text(actividad['actividad'] ?? ''),
+                      title: Text(actividad['actividadNombre'] ?? ''),
                       subtitle: Text(
                         'Horas: ${actividad['horaActividad'] ?? ''}\nDescripción: ${actividad['descripcion'] ?? ''}\nUbicación: ${actividad['ubicacion'] ?? ''}\nUbicación General: ${actividad['ubicaciong'] ?? ''}',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _editActivity(index),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _deleteActivity(index),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 },
               ),
-              const SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: _sendFormData,
-                child: const Text('Enviar'),
-              ),
             ],
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _sendFormData, // Acción cuando se presiona el botón
+        child: const Icon(Icons.save),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

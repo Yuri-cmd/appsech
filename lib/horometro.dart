@@ -58,12 +58,12 @@ class _HorometroState extends State<Horometro> {
   }
 
   Future<void> _editarRegistro(int idRegistro) async {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => FormModalEdit(registro: idRegistro),
-    //   ),
-    // );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FormModal(registro: idRegistro),
+      ),
+    );
   }
 
   Future<void> _descargarExcel() async {

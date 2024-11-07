@@ -99,7 +99,7 @@ class ApiService {
         final List<dynamic> zonasList = json.decode(response.body);
         return zonasList.map((zona) {
           return {
-            'id': zona['id_zona'].toString(),
+            'id': zona['id'].toString(),
             'nombre': zona['nombre'].toString(),
           };
         }).toList();
@@ -120,7 +120,6 @@ class ApiService {
       if (response.statusCode == 200) {
         // Asegúrate de que el cuerpo de la respuesta sea una lista
         final List<dynamic> jsonResponse = json.decode(response.body);
-
         // Convertir la lista dinámica a una lista de mapas
         return jsonResponse.cast<Map<String, dynamic>>();
       } else {
@@ -232,9 +231,10 @@ class ApiService {
   }
 
   // Method to fetch maquinaria activities
-  static Future<List<String>> fetchMaquinariaActividades(
+  static Future<List<Map<String, dynamic>>> fetchMaquinariaActividades(
       String maquinaria) async {
     final url = '$baseUrl/maquinarias/actividades?nombre=$maquinaria';
+    print(url);
     try {
       final response = await http.get(Uri.parse(url));
 
@@ -242,14 +242,18 @@ class ApiService {
         final List<dynamic> decodedResponse = json.decode(response.body);
         // Extrae los nombres de las actividades de la respuesta
         return decodedResponse
-            .map<String>((map) {
-              if (map is Map<String, dynamic> && map.containsKey('nombre')) {
-                return map['nombre'] as String;
+            .map<Map<String, dynamic>>((map) {
+              if (map is Map<String, dynamic> &&
+                  map.containsKey('id_actividad') &&
+                  map.containsKey('nombre')) {
+                return {
+                  'id_actividad': map['id_actividad'],
+                  'nombre': map['nombre'],
+                };
               }
-              return ''; // Maneja el caso donde 'nombre' no esté presente
+              return {}; // Devuelve un mapa vacío si 'id_actividad' o 'nombre' no están presentes
             })
-            .where(
-                (name) => name.isNotEmpty) // Filtra valores vacíos si los hay
+            .where((item) => item.isNotEmpty)
             .toList();
       } else {
         throw Exception('Failed to load maquinaria activities');
@@ -269,8 +273,8 @@ class ApiService {
         // Extrae los nombres de las zonas de la respuesta
         return decodedResponse
             .map<String>((map) {
-              if (map is Map<String, dynamic> && map.containsKey('zona')) {
-                return map['zona'] as String;
+              if (map is Map<String, dynamic> && map.containsKey('nombre')) {
+                return map['nombre'] as String;
               }
               return ''; // Maneja el caso donde 'zona' no esté presente
             })
@@ -289,10 +293,12 @@ class ApiService {
   static Future<List<String>> fetchActividadGeneral(String actividad) async {
     final response =
         await http.get(Uri.parse('$baseUrl/actividad-general/$actividad'));
-
+    print('$baseUrl/actividad-general/$actividad');
     if (response.statusCode == 200) {
+      // Decodificamos la respuesta como una lista de mapas
       List<dynamic> data = jsonDecode(response.body);
 
+      // Ahora extraemos los nombres
       List<String> result = data
           .map<String>((map) {
             if (map is Map<String, dynamic> && map.containsKey('nombre')) {
@@ -300,9 +306,8 @@ class ApiService {
             }
             return '';
           })
-          .where((name) => name.isNotEmpty)
+          .where((name) => name.isNotEmpty) // Filtramos los nombres vacíos
           .toList();
-
       return result;
     } else {
       throw Exception('Error al obtener actividad general');
@@ -513,6 +518,24 @@ class ApiService {
     } catch (e) {
       // print('Error al hacer la solicitud: $e');
       return null;
+    }
+  }
+
+  static Future<String> lastHorometro(String id) async {
+    final url = '$baseUrl/horometro/get/last/$id';
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        // Decodifica la respuesta JSON
+        return response.body;
+      } else {
+        // print('Error: ${response.statusCode}');
+        return '0.0';
+      }
+    } catch (e) {
+      // print('Error al hacer la solicitud: $e');
+      return '0.0';
     }
   }
 }

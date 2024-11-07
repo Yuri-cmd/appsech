@@ -177,10 +177,9 @@ class _RegistroFormState extends State<RegistroForm> {
       final details = detailsList[0]; // Toma el primer objeto de la lista
 
       setState(() {
-        _marcaController.text = details['marca'];
+        // _marcaController.text = details['marca'];
       });
-    } else {
-    }
+    } else {}
   }
 
   Future<void> _fetchOperarioMaquinaria(String maquinaria) async {
@@ -194,8 +193,7 @@ class _RegistroFormState extends State<RegistroForm> {
     Map<String, dynamic> details =
         await ApiService.fetchAbastecimientoMaquinaria(maquinaria);
     setState(() {
-      _abastecimientoController.text =
-          details['abastecimiento']; // Actualiza el campo de marca
+      _abastecimientoController.text = details['abastecimiento'];
     });
   }
 
@@ -306,7 +304,7 @@ class _RegistroFormState extends State<RegistroForm> {
 
           // Dropdown para seleccionar maquinaria
           DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: 'Maquinaria'),
+            decoration: const InputDecoration(labelText: 'Modelo'),
             value: _maquinarias.contains(_selectedMaquinaria)
                 ? _selectedMaquinaria
                 : null,
@@ -324,22 +322,6 @@ class _RegistroFormState extends State<RegistroForm> {
                 _fetchMaquinariaDetails(
                     newValue); // Llamar detalles de maquinaria
               }
-            },
-          ),
-          const SizedBox(height: 10),
-          TextFormField(
-            controller: _marcaController, // Campo editable de marca
-            decoration: const InputDecoration(labelText: 'Marca'),
-            onChanged: (value) {
-              setState(() {
-                _marca = value;
-              });
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor ingrese la marca';
-              }
-              return null;
             },
           ),
           DropdownButtonFormField<String>(
@@ -360,21 +342,34 @@ class _RegistroFormState extends State<RegistroForm> {
               );
             }).toList(),
           ),
-          TextFormField(
-            controller: _abastecimientoController, // Campo editable de marca
+          DropdownButtonFormField<String>(
+            value: _abastecimientoController.text.isEmpty
+                ? null
+                : _abastecimientoController.text, // Valor asignado
             decoration: const InputDecoration(labelText: 'Abastecimiento'),
             onChanged: (value) {
               setState(() {
-                _marca = value;
+                _abastecimientoController.text = value!;
               });
             },
+            items: <String>[
+              'Interno',
+              'Externo',
+            ] // Aquí agregas las opciones que necesitas
+                .map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Por favor ingrese la marca';
+                return 'Por favor seleccione una opción';
               }
               return null;
             },
           ),
+
           TextFormField(
             controller: _horometroController,
             decoration: const InputDecoration(labelText: 'Horómetro de carga'),
@@ -390,9 +385,11 @@ class _RegistroFormState extends State<RegistroForm> {
             value: _selectedCombustible,
             decoration: const InputDecoration(labelText: 'Tipo de combustible'),
             items: const [
-              DropdownMenuItem(value: 'GLP', child: Text('GLP')),
-              DropdownMenuItem(value: 'Diesel', child: Text('Diesel')),
-              DropdownMenuItem(value: 'Gasolina', child: Text('Gasolina')),
+              DropdownMenuItem(value: 'GLP', child: Text('GLP (balón)')),
+              DropdownMenuItem(value: 'Diesel', child: Text('Diesel (gal)')),
+              DropdownMenuItem(
+                  value: 'Gasolina', child: Text('Gasolina (gal)')),
+              DropdownMenuItem(value: 'GNV', child: Text('GNV (gal)')),
             ],
             onChanged: (value) {
               setState(() {
@@ -413,6 +410,22 @@ class _RegistroFormState extends State<RegistroForm> {
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Por favor ingrese la cantidad';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: _marcaController, // Campo editable de marca
+            decoration: const InputDecoration(labelText: 'Observacion'),
+            onChanged: (value) {
+              setState(() {
+                _marca = value;
+              });
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingrese la marca';
               }
               return null;
             },
