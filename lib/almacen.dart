@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:appsech/api/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:appsech/theme/app_theme.dart';
@@ -13,6 +15,7 @@ class Almacen extends StatefulWidget {
   const Almacen({Key? key}) : super(key: key);
 
   @override
+  // ignore: library_private_types_in_public_api
   _AlmacenState createState() => _AlmacenState();
 }
 
@@ -206,31 +209,32 @@ class _AlmacenState extends State<Almacen> {
         ),
       ]),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _metaController,
-                    decoration: const InputDecoration(
-                      labelText: 'Última Meta',
-                      border: OutlineInputBorder(),
+        padding: const EdgeInsets.all(8.0),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _metaController,
+                      decoration: const InputDecoration(
+                        labelText: 'Última Meta',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _saveMeta,
-                  child: const Text('Guardar'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _saveMeta,
+                    child: const Text('Guardar'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              PaginatedDataTable(
+                header: const Text('Datos del Almacen'),
+                rowsPerPage: 10, // Número de filas por página
                 columns: const [
                   DataColumn(label: Text('Fecha')),
                   DataColumn(label: Text('Stock inicial (Ton)')),
@@ -239,12 +243,39 @@ class _AlmacenState extends State<Almacen> {
                   DataColumn(label: Text('Peso despachado')),
                   DataColumn(label: Text('Stock final (Ton)')),
                 ],
-                rows: _dataRows,
+                source: _DataTableSource(_dataRows), 
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+// Clase para la fuente de datos del PaginatedDataTable
+class _DataTableSource extends DataTableSource {
+  final List<DataRow> _dataRows;
+
+  _DataTableSource(this._dataRows);
+
+  @override
+  DataRow getRow(int index) {
+    if (index >= _dataRows.length) return null!;
+    return _dataRows[index];
+  }
+
+  @override
+  int get rowCount => _dataRows.length;
+
+  @override
+  bool get hasMoreRows => false;
+
+  @override
+  int get selectedRowCount => 0;
+
+  // Implementing the required getter
+  @override
+  bool get isRowCountApproximate =>
+      false; // Set to false if the row count is exact
 }

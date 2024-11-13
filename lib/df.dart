@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_declarations
+// ignore_for_file: prefer_const_declarations, library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -34,7 +34,6 @@ class _DfPageState extends State<DfPage> {
     if (response.statusCode == 200) {
       setState(() {
         residuosData = Map<String, String>.from(json.decode(response.body)[0]);
-        print(residuosData);
       });
     } else {
       throw Exception('Failed to load residuos data');
@@ -48,7 +47,6 @@ class _DfPageState extends State<DfPage> {
     if (response.statusCode == 200) {
       setState(() {
         dataList = json.decode(response.body);
-        print(dataList);
       });
     } else {
       throw Exception('Failed to load data');

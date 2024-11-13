@@ -234,7 +234,6 @@ class ApiService {
   static Future<List<Map<String, dynamic>>> fetchMaquinariaActividades(
       String maquinaria) async {
     final url = '$baseUrl/maquinarias/actividades?nombre=$maquinaria';
-    print(url);
     try {
       final response = await http.get(Uri.parse(url));
 
@@ -293,7 +292,6 @@ class ApiService {
   static Future<List<String>> fetchActividadGeneral(String actividad) async {
     final response =
         await http.get(Uri.parse('$baseUrl/actividad-general/$actividad'));
-    print('$baseUrl/actividad-general/$actividad');
     if (response.statusCode == 200) {
       // Decodificamos la respuesta como una lista de mapas
       List<dynamic> data = jsonDecode(response.body);

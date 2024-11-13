@@ -6,6 +6,7 @@ class AgregarActividadScreen extends StatefulWidget {
   final String maquinaria;
   final String maq;
   final double horas;
+  final double horasTotalesUsadas;
   final Map<String, dynamic>? actividad;
 
   const AgregarActividadScreen(
@@ -14,7 +15,8 @@ class AgregarActividadScreen extends StatefulWidget {
       required this.maquinaria,
       required this.onGuardar,
       required this.horas,
-      this.actividad})
+      this.actividad,
+      required this.horasTotalesUsadas})
       : super(key: key);
 
   @override
@@ -30,19 +32,23 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
       _actividadg,
       _descripcion,
       _ubicacion,
+      _destinoId,
       _ubicaciong,
       _ubicacionT,
       _nviajes,
-      _destino;
+      _destino,
+      _destinoE;
   double _horasUsadas = 0.0;
 
   List<Map<String, dynamic>> _actividadOptions = [];
   List<String> _actividadGenerals = [];
   List<String> _ubicacionesGenerales = [];
+  List<String> _destinosEspecificos = [];
   List<Map<String, dynamic>> _zonas = [];
 
   final TextEditingController _horasController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController();
+  final TextEditingController _nviajesController = TextEditingController();
 
   @override
   void initState() {
@@ -57,8 +63,9 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
           _actividadId = int.tryParse(widget.actividad!['actividadId'] ?? '');
           _actividadNombre = widget.actividad!['actividadNombre'];
           _nviajes = widget.actividad!['nviajes'];
+          _nviajesController.text = _nviajes.toString();
           _destino = widget.actividad!['destino'];
-
+          _destinoId = widget.actividad!['destinoId'];
           _fetchActividadGenerals(_actividadId.toString()).then((_) {
             _actividadg = widget.actividad!['actividadGeneral'];
             _fetchDetalleZona(widget.actividad!['idUbi']).then((_) {
@@ -68,6 +75,9 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
                   .contains(widget.actividad!['idUbi'])) {
                 _ubicacion = widget.actividad!['idUbi'];
                 _ubicacionT = widget.actividad!['ubicacion'];
+                _fetchDetalleDestino(_destinoId).then((_) {
+                  _destinoE = widget.actividad!['destinoE'];
+                });
               } else {
                 _ubicacion = null; // Reset if value doesn't exist
               }
@@ -82,7 +92,6 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
 
   Future<void> _fetchActividades(String maquinaria) async {
     final actividades = await FormModalHelper.fetchActividades(maquinaria);
-    print(actividades);
     setState(() {
       _actividadOptions = actividades;
     });
@@ -108,6 +117,14 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
     final zonasDetalle = await FormModalHelper.fetchDetalleZona(ubicacionId);
     setState(() {
       _ubicacionesGenerales = zonasDetalle.toSet().toList();
+    });
+  }
+
+  Future<void> _fetchDetalleDestino(String? ubicacionId) async {
+    if (ubicacionId == null) return;
+    final zonasDetalle = await FormModalHelper.fetchDetalleZona(ubicacionId);
+    setState(() {
+      _destinosEspecificos = zonasDetalle.toSet().toList();
     });
   }
 
@@ -198,7 +215,8 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
                 },
               ),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Ubicación'),
+                decoration:
+                    const InputDecoration(labelText: 'Ubicación General'),
                 value: _ubicacion,
                 onChanged: (String? newValue) {
                   setState(() {
@@ -217,7 +235,7 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
               ),
               DropdownButtonFormField<String>(
                 decoration:
-                    const InputDecoration(labelText: 'Ubicación General'),
+                    const InputDecoration(labelText: 'Ubicación Especifica'),
                 value: _ubicaciong,
                 onChanged: (String? newValue) {
                   setState(() {
@@ -233,8 +251,8 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
               ),
               // Mostrar campos adicionales si MAQ es volquete
               if (widget.maq == 'volquete') ...[
-                const SizedBox(height: 16.0),
                 TextFormField(
+                  controller: _nviajesController,
                   decoration: const InputDecoration(labelText: 'N° de viajes'),
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
@@ -243,13 +261,39 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
                     });
                   },
                 ),
-                TextFormField(
+                DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'Destino'),
-                  onChanged: (value) {
+                  value: _destinoId,
+                  onChanged: (String? newValue) {
                     setState(() {
-                      _destino = value;
+                      _destinoId = newValue;
+                      _destino = _zonas.firstWhere(
+                          (zona) => zona['id'] == newValue)['nombre'];
+                    });
+                    _fetchDetalleDestino(newValue);
+                  },
+                  items: _zonas.map<DropdownMenuItem<String>>((zona) {
+                    return DropdownMenuItem<String>(
+                      value: zona['id'], // Asegúrate de que esto sea correcto
+                      child: Text(zona['nombre']),
+                    );
+                  }).toList(),
+                ),
+                DropdownButtonFormField<String>(
+                  decoration:
+                      const InputDecoration(labelText: 'Destino Especifico'),
+                  value: _destinoE,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _destinoE = newValue;
                     });
                   },
+                  items: _destinosEspecificos.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
                 ),
               ],
               const SizedBox(height: 20),
@@ -258,9 +302,10 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
                   double horasActividad =
                       double.tryParse(_horasActividad ?? '0') ?? 0.0;
                   if (horasActividad > 0) {
-                    if (_horasUsadas + horasActividad <= widget.horas) {
+                    if (widget.horasTotalesUsadas + horasActividad <=
+                        widget.horas) {
                       setState(() {
-                        // Actualiza o agrega la actividad según sea necesario
+                        // Guarda la actividad y actualiza las horas
                         widget.onGuardar({
                           'horaActividad': _horasActividad,
                           'actividadNombre': _actividadNombre,
@@ -272,8 +317,14 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
                           'idUbi': _ubicacion,
                           'nviajes': _nviajes,
                           'destino': _destino,
+                          'destinoId': _destinoId,
+                          'destinoE': _destinoE
                         });
-                        _horasUsadas += horasActividad;
+
+                        _horasUsadas +=
+                            horasActividad; // Actualiza horas usadas en esta pantalla
+
+                        // Limpia los campos después de guardar
                         _actividadId = null;
                         _actividadNombre = null;
                         _actividadg = null;
@@ -283,6 +334,8 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
                         _horasActividad = null;
                         _destino = null;
                         _nviajes = null;
+                        _destinoId = null;
+                        _destinoE = null;
                       });
                       Navigator.pop(context);
                     } else {

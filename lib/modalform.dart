@@ -23,7 +23,8 @@ class _FormModalState extends State<FormModal> {
   String _horometrof = '';
   double _horas = 0.0;
   String? _nviajes, _destino, _cantidad, _nuevoOperario;
-
+  double _horasTotalesUsadas = 0.0;
+  double _horometroCarga = 0.0;
   // Carga de Combustible
   bool _cargaCombustible = false;
   String? _tipoCombustible; // Almacena el tipo de combustible
@@ -137,11 +138,16 @@ class _FormModalState extends State<FormModal> {
       _maqController.text = existingData['maq'];
       _propiedad = existingData['propiedad'];
       _operador = existingData['operador'];
+      _horometroCarga = existingData['horometroCarga'];
       _horometroiController.text = existingData['horometroi'].toString();
       _horometrofController.text = existingData['horometrof'].toString();
       // _horas = existingData['horas'];
       _fetchMaquinariaDetails(existingData['maquinaria']);
-      _updateHoras();
+      setState(() {
+        _horas = FormModalHelper.calculateHoras(
+            existingData['horometroi'].toString(),
+            existingData['horometrof'].toString());
+      });
       _nviajes = existingData['nviajes']?.toString() ?? '';
       _destino = existingData['destino'];
       _cargaCombustible = existingData['cargaCombustible'] == 1 ? true : false;
@@ -186,6 +192,7 @@ class _FormModalState extends State<FormModal> {
         _tipoCombustible,
         _cantidad,
         _nuevoOperario,
+        _horometroCarga,
         _actividadesAgregadas);
     await FormModalHelper.sendFormHormetro(formData, context);
   }
@@ -202,16 +209,21 @@ class _FormModalState extends State<FormModal> {
       context,
       MaterialPageRoute(
         builder: (context) => AgregarActividadScreen(
-          maq: _maqController.text.toLowerCase(),
-          maquinaria: _maquinaria,
-          onGuardar: (actividad) {
-            setState(() {
-              // Agrega la nueva actividad a la lista
-              _actividadesAgregadas.add(actividad);
-            });
-          },
-          horas: _horas,
-        ),
+            maq: _maqController.text.toLowerCase(),
+            maquinaria: _maquinaria,
+            onGuardar: (actividad) {
+              setState(() {
+                // Agrega la nueva actividad a la lista
+                _actividadesAgregadas.add(actividad);
+
+                // Actualiza el contador de horas usadas
+                double horasActividad =
+                    double.tryParse(actividad['horaActividad'] ?? '0') ?? 0.0;
+                _horasTotalesUsadas += horasActividad;
+              });
+            },
+            horas: _horas,
+            horasTotalesUsadas: _horasTotalesUsadas),
       ),
     );
 
@@ -229,17 +241,17 @@ class _FormModalState extends State<FormModal> {
       context,
       MaterialPageRoute(
         builder: (context) => AgregarActividadScreen(
-          maq: _maqController.text.toLowerCase(),
-          maquinaria: _maquinaria,
-          onGuardar: (actividad) {
-            setState(() {
-              // Actualiza la actividad editada en la lista
-              _actividadesAgregadas[index] = actividad;
-            });
-          },
-          horas: _horas,
-          actividad: actividad, // Pasa la actividad a editar
-        ),
+            maq: _maqController.text.toLowerCase(),
+            maquinaria: _maquinaria,
+            onGuardar: (actividad) {
+              setState(() {
+                // Actualiza la actividad editada en la lista
+                _actividadesAgregadas[index] = actividad;
+              });
+            },
+            horas: _horas,
+            actividad: actividad, // Pasa la actividad a editar
+            horasTotalesUsadas: _horasTotalesUsadas),
       ),
     );
 
@@ -454,6 +466,27 @@ class _FormModalState extends State<FormModal> {
                     });
                   },
                 ),
+                TextFormField(
+                  decoration:
+                      const InputDecoration(labelText: 'Horometro de Carga'),
+                  keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true), // Permite números decimales
+                  onChanged: (value) {
+                    if (value.isEmpty) {
+                      setState(() {
+                        _horometroCarga =
+                            0.0; // Valor por defecto si el campo está vacío
+                      });
+                    } else {
+                      final parsedValue = double.tryParse(value);
+                      if (parsedValue != null) {
+                        setState(() {
+                          _horometroCarga = parsedValue;
+                        });
+                      }
+                    }
+                  },
+                )
               ],
               const SizedBox(height: 10),
               ElevatedButton.icon(

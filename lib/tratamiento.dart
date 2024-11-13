@@ -41,23 +41,35 @@ class _TratamientoState extends State<Tratamiento> {
   // Lista de zonas para el filtro
   final List<String> zonas = [
     'Todos',
-    'L1.1',
-    'L1.2',
+    'DS1',
+    'DS2',
+    'DS3',
+    'DS4',
+    'DS5',
+    'DS6',
+    'AT1',
+    'AT2',
+    'AT3',
+    'L1',
     'L2',
     'L3',
+    'L1.1',
+    'L1.2',
+    'L4',
     'P1',
     'P2',
     'P3',
     'P4',
     'P5',
-    'D1',
-    'D2',
-    'D3',
-    'D4',
-    'D5',
-    'PTARI',
-    'VES',
-    'EVAPORACIÓN'
+    'P6',
+    'Poza 1',
+    'Poza 2',
+    'Poza 3',
+    'Z.Fluorescentes',
+    'Z. Aerosoles',
+    'Planta',
+    'Externo',
+    'Cantera',
   ];
 
   // Lista de estados para el filtro
@@ -220,8 +232,8 @@ class _TratamientoState extends State<Tratamiento> {
       );
     } else {
       // Manejo de error si la solicitud falla
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Error al cargar información')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al cargar información')));
     }
   }
 
@@ -307,33 +319,7 @@ class _TratamientoState extends State<Tratamiento> {
     );
   }
 
-  void _guardarDatosActualizados() {
-    // Aquí implementas la lógica para guardar los datos, tal vez enviándolos a la API
-    // Por ejemplo:
-    // final datosActualizados = {
-    //   'ratio_volquete': ratioVolqueteController.text,
-    //   'costo_volquete': costoVolqueteController.text,
-    //   'ratio_excavadora': ratioExcavadoraController.text,
-    //   'costo_excavadora': costoExcavadoraController.text,
-    //   'rendimiento_volquete': rendimientoVolqueteController.text,
-    //   'rendimiento_excavadora': rendimientoExcavadoraController.text,
-    //   'precio_combustible': precioCombustibleController.text,
-    //   'costo_cemento': costoCementoController.text,
-    // };
-
-    // Lógica para guardar estos datos, por ejemplo:
-    // ApiService.guardarDatosActualizados(datosActualizados).then((result) {
-    //   // Maneja el resultado, muestra un mensaje o actualiza el estado
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Datos actualizados correctamente')),
-    //   );
-    // }).catchError((error) {
-    //   // Manejo de errores
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Error al actualizar los datos: $error')),
-    //   );
-    // });
-  }
+  void _guardarDatosActualizados() {}
 
   @override
   Widget build(BuildContext context) {
@@ -399,17 +385,29 @@ class _TratamientoState extends State<Tratamiento> {
                   return const Center(
                       child: Text('No hay tratamientos disponibles'));
                 } else {
-                  // Filtrar los tratamientos según el estado seleccionado
+                  // Filtrar los tratamientos según el estado y zona seleccionados
                   final tratamientos = snapshot.data!.where((tratamiento) {
-                    if (selectedEstado == 'Todos') return true;
-                    if (selectedEstado == 'Pendiente') {
-                      return tratamiento['estado'] ==
-                          1; // Cambia según tu lógica
-                    } else if (selectedEstado == 'Finalizado') {
-                      return tratamiento['estado'] ==
-                          2; // Cambia según tu lógica
+                    // Filtrar por estado
+                    bool filtroEstado = true;
+                    if (selectedEstado != 'Todos') {
+                      if (selectedEstado == 'Pendiente') {
+                        filtroEstado = tratamiento['estado'] ==
+                            1; // Cambia según tu lógica
+                      } else if (selectedEstado == 'Finalizado') {
+                        filtroEstado = tratamiento['estado'] ==
+                            2; // Cambia según tu lógica
+                      }
                     }
-                    return false; // Para otros casos, si hay
+
+                    // Filtrar por zona
+                    bool filtroZona = true;
+                    if (selectedZona != 'Todos') {
+                      filtroZona = tratamiento['ubicacion_general'] ==
+                          selectedZona; // Ajusta si es necesario
+                    }
+
+                    // Solo devuelve el tratamiento si pasa ambos filtros
+                    return filtroEstado && filtroZona;
                   }).toList();
 
                   // ListView con los tratamientos filtrados
@@ -477,7 +475,7 @@ class _TratamientoState extends State<Tratamiento> {
                   // Mostrar el modal con el selector de rango de fechas
                   DateTimeRange? picked = await showDateRangePicker(
                     context: context,
-                    firstDate: DateTime(2000), 
+                    firstDate: DateTime(2000),
                     lastDate: DateTime(2100),
                   );
 

@@ -2,9 +2,12 @@
 
 import 'dart:convert';
 import 'package:appsech/helpers/form_helpers.dart';
+import 'package:appsech/theme/app_theme.dart';
+import 'package:appsech/widgets/prueba.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:appsech/api/api_service.dart';
+import 'package:appsech/widgets/widgets.dart';
 
 class Grifo extends StatefulWidget {
   const Grifo({super.key});
@@ -92,8 +95,16 @@ class _GrifoState extends State<Grifo> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: AppTheme.primary,
         title: const Text('Grifo'),
       ),
+      endDrawer: NavOptionsView(options: [
+        NavOption(
+          title: 'Rendimiento de combustible',
+          icon: Icons.pie_chart,
+          targetView: RendimientoChart(),
+        ),
+      ]),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -174,11 +185,6 @@ class _RegistroFormState extends State<RegistroForm> {
     _fetchCombustibleMaquinaria(maquinaria);
     _fetchOperarioMaquinaria(maquinaria);
     if (detailsList.isNotEmpty) {
-      final details = detailsList[0]; // Toma el primer objeto de la lista
-
-      setState(() {
-        // _marcaController.text = details['marca'];
-      });
     } else {}
   }
 
