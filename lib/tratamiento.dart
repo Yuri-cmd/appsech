@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
 import 'package:appsech/api/api_service.dart';
+import 'package:appsech/screens/tratamiento_create_screen.dart';
 import 'package:appsech/screens/tratamiento_table.dart';
 import 'package:flutter/material.dart';
 import 'package:appsech/screens/tratamiento_detalle.dart';
@@ -13,16 +14,10 @@ class Tratamiento extends StatefulWidget {
 }
 
 class _TratamientoState extends State<Tratamiento> {
-  String selectedZona = 'L1.1'; // Zona seleccionada por defecto
+  String selectedZona = 'Todos'; // Zona seleccionada por defecto
   String selectedEstado = 'Todos'; // Estado seleccionado por defecto
 
   final TextEditingController numeroProcesoController = TextEditingController();
-  final TextEditingController fechaInicioController = TextEditingController();
-  final TextEditingController fechaFinController = TextEditingController();
-  final TextEditingController ubicacionGeneralController =
-      TextEditingController();
-  final TextEditingController ubicacionEspecificaController =
-      TextEditingController();
 
   final TextEditingController ratioVolqueteController = TextEditingController();
   final TextEditingController costoVolqueteController = TextEditingController();
@@ -75,114 +70,6 @@ class _TratamientoState extends State<Tratamiento> {
   // Lista de estados para el filtro
   final List<String> estados = ['Todos', 'Pendiente', 'Finalizado'];
 
-  Future<String> obtenerUltimoNumeroProceso() async {
-    final tratamientos = await ApiService.obtenerTratamientos();
-    if (tratamientos.isNotEmpty) {
-      final ultimoProceso = tratamientos.last['numero_proceso'];
-      return (int.parse(ultimoProceso) + 1).toString().padLeft(3, '0');
-    }
-    return '001'; // Si no hay registros, iniciar desde '001'
-  }
-
-  void _mostrarModal(BuildContext context) async {
-    String siguienteNumeroProceso = await obtenerUltimoNumeroProceso();
-    numeroProcesoController.text = siguienteNumeroProceso;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Nuevo Tratamiento'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: numeroProcesoController,
-                  decoration: const InputDecoration(labelText: 'N° Proceso'),
-                  readOnly: true,
-                ),
-                TextField(
-                  controller: fechaInicioController,
-                  readOnly: true,
-                  decoration:
-                      const InputDecoration(labelText: 'Fecha de inicio'),
-                  onTap: () async {
-                    DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2101),
-                    );
-                    if (pickedDate != null) {
-                      setState(() {
-                        fechaInicioController.text =
-                            "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-                      });
-                    }
-                  },
-                ),
-                TextField(
-                  controller: fechaFinController,
-                  readOnly: true,
-                  decoration: const InputDecoration(labelText: 'Fecha Fin'),
-                  onTap: () async {
-                    DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2101),
-                    );
-                    if (pickedDate != null) {
-                      setState(() {
-                        fechaFinController.text =
-                            "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-                      });
-                    }
-                  },
-                ),
-                TextField(
-                  controller: ubicacionGeneralController,
-                  decoration:
-                      const InputDecoration(labelText: 'Ubicación General'),
-                ),
-                TextField(
-                  controller: ubicacionEspecificaController,
-                  decoration:
-                      const InputDecoration(labelText: 'Ubicación Específica'),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () async {
-                String idTratamiento = await _guardarDatos();
-                Navigator.of(context).pop();
-                if (idTratamiento.isNotEmpty) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          TratamientoDetalleScreen(id: idTratamiento),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _mostrarInformacion(BuildContext context, int id) async {
     ApiService apiService = ApiService();
     final detalleList = await apiService.getDetalle(id);
@@ -234,25 +121,6 @@ class _TratamientoState extends State<Tratamiento> {
       // Manejo de error si la solicitud falla
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Error al cargar información')));
-    }
-  }
-
-  Future<String> _guardarDatos() async {
-    final datos = {
-      'numero_proceso': numeroProcesoController.text,
-      'fecha_inicio': fechaInicioController.text,
-      'fecha_fin':
-          fechaFinController.text.isEmpty ? null : fechaFinController.text,
-      'ubicacion_general': ubicacionGeneralController.text,
-      'ubicacion_especifica': ubicacionEspecificaController.text,
-    };
-
-    try {
-      final idTratamiento = await ApiService.guardarTratamiento(datos);
-      return idTratamiento; // Retornar el ID
-    } catch (e) {
-      // print('Error al enviar los datos: $e');
-      return ''; // Retornar un valor vacío en caso de error
     }
   }
 
@@ -321,6 +189,11 @@ class _TratamientoState extends State<Tratamiento> {
 
   void _guardarDatosActualizados() {}
 
+  Future<List<Map<String, dynamic>>> _fetchTratamientos() async {
+    return await ApiService
+        .obtenerTratamientos(); // Esta es la función que ya tienes
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -329,7 +202,9 @@ class _TratamientoState extends State<Tratamiento> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: _mostrarModalDatos, // Botón de Guardar
+            onPressed: () {
+              // Lógica del modal o ajustes
+            },
           ),
         ],
       ),
@@ -374,100 +249,105 @@ class _TratamientoState extends State<Tratamiento> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: ApiService.obtenerTratamientos(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return const Center(child: Text('Error al cargar los datos'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                      child: Text('No hay tratamientos disponibles'));
-                } else {
-                  // Filtrar los tratamientos según el estado y zona seleccionados
-                  final tratamientos = snapshot.data!.where((tratamiento) {
-                    // Filtrar por estado
-                    bool filtroEstado = true;
-                    if (selectedEstado != 'Todos') {
-                      if (selectedEstado == 'Pendiente') {
-                        filtroEstado = tratamiento['estado'] ==
-                            1; // Cambia según tu lógica
-                      } else if (selectedEstado == 'Finalizado') {
-                        filtroEstado = tratamiento['estado'] ==
-                            2; // Cambia según tu lógica
-                      }
-                    }
-
-                    // Filtrar por zona
-                    bool filtroZona = true;
-                    if (selectedZona != 'Todos') {
-                      filtroZona = tratamiento['ubicacion_general'] ==
-                          selectedZona; // Ajusta si es necesario
-                    }
-
-                    // Solo devuelve el tratamiento si pasa ambos filtros
-                    return filtroEstado && filtroZona;
-                  }).toList();
-
-                  // ListView con los tratamientos filtrados
-                  return ListView.builder(
-                    itemCount: tratamientos.length,
-                    itemBuilder: (context, index) {
-                      final tratamiento = tratamientos[index];
-                      String idTratamiento = tratamiento['id'].toString();
-                      String estado = tratamiento['estado'] == 1
-                          ? 'Pendiente'
-                          : 'Finalizado';
-
-                      // Imprimir estado y el ID del tratamiento
-                      return Card(
-                        child: ListTile(
-                          title: Text(tratamiento['numero_proceso']),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                  'Fecha de inicio: ${tratamiento['fecha_inicio']}'),
-                              Text(
-                                  'Ubicación: ${tratamiento['ubicacion_general']}'),
-                              Text('Estado: $estado'), // Agregar el estado aquí
-                            ],
-                          ),
-                          trailing: tratamiento['estado'] == 1
-                              ? IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            TratamientoDetalleScreen(
-                                                id: idTratamiento),
-                                      ),
-                                    );
-                                  },
-                                )
-                              : IconButton(
-                                  icon: const Icon(Icons.info),
-                                  onPressed: () {
-                                    _mostrarInformacion(
-                                        context, tratamiento['id']);
-                                  },
-                                ),
-                        ),
-                      );
-                    },
-                  );
-                }
+            child: RefreshIndicator(
+              onRefresh: () async {
+                setState(
+                    () {}); // Actualiza la pantalla cuando el usuario deslice hacia abajo
               },
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _fetchTratamientos(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return const Center(
+                        child: Text('Error al cargar los datos'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                        child: Text('No hay tratamientos disponibles'));
+                  } else {
+                    // Filtrar los tratamientos según el estado y zona seleccionados
+                    final tratamientos = snapshot.data!.where((tratamiento) {
+                      bool filtroEstado = true;
+                      if (selectedEstado != 'Todos') {
+                        if (selectedEstado == 'Pendiente') {
+                          filtroEstado = tratamiento['estado'] == 1;
+                        } else if (selectedEstado == 'Finalizado') {
+                          filtroEstado = tratamiento['estado'] == 2;
+                        }
+                      }
+
+                      bool filtroZona = true;
+                      if (selectedZona != 'Todos') {
+                        filtroZona =
+                            tratamiento['ubicacion_general'] == selectedZona;
+                      }
+
+                      return filtroEstado && filtroZona;
+                    }).toList();
+
+                    return ListView.builder(
+                      itemCount: tratamientos.length,
+                      itemBuilder: (context, index) {
+                        final tratamiento = tratamientos[index];
+                        String idTratamiento = tratamiento['id'].toString();
+                        String estado = tratamiento['estado'] == 1
+                            ? 'Pendiente'
+                            : 'Finalizado';
+
+                        return Card(
+                          child: ListTile(
+                            title: Text(tratamiento['numero_proceso']),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                    'Fecha de inicio: ${tratamiento['fecha_inicio']}'),
+                                Text(
+                                    'Ubicación: ${tratamiento['ubicacion_general']}'),
+                                Text('Estado: $estado'),
+                              ],
+                            ),
+                            trailing: tratamiento['estado'] == 1
+                                ? IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              TratamientoDetalleScreen(
+                                                  id: idTratamiento),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : IconButton(
+                                    icon: const Icon(Icons.info),
+                                    onPressed: () {
+                                      // Mostrar más detalles
+                                    },
+                                  ),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                },
+              ),
             ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               FloatingActionButton(
-                onPressed: () => _mostrarModal(context),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => (const TratamientroCreateScreen()),
+                    ),
+                  );
+                },
                 child: const Icon(Icons.add),
               ),
               FloatingActionButton(

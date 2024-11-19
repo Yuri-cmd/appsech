@@ -22,6 +22,7 @@ class _FormModalState extends State<FormModal> {
   String? _horometroi;
   String _horometrof = '';
   double _horas = 0.0;
+  bool? _isCreate;
   String? _nviajes, _destino, _cantidad, _nuevoOperario;
   double _horasTotalesUsadas = 0.0;
   double _horometroCarga = 0.0;
@@ -50,11 +51,11 @@ class _FormModalState extends State<FormModal> {
   @override
   void initState() {
     super.initState();
-    _fetchMaquinariaOptions();
-
-    if (widget.registro != null) {
-      _loadDataForEdit(widget.registro ?? 0);
-    }
+    _fetchMaquinariaOptions().then((_) {
+      if (widget.registro != null) {
+        _loadDataForEdit(widget.registro ?? 0);
+      }
+    });
 
     _maqController.addListener(() {
       _maq = _maqController.text;
@@ -129,7 +130,6 @@ class _FormModalState extends State<FormModal> {
   Future<void> _loadDataForEdit(int recordId) async {
     // Llamada a la API para obtener los datos del registro por ID
     final existingData = await ApiService.getHorometroOne(recordId);
-
     setState(() {
       // _selectedDate = DateTime.parse(existingData['fecha']);
       _semana = existingData['semana'];
@@ -138,7 +138,7 @@ class _FormModalState extends State<FormModal> {
       _maqController.text = existingData['maq'];
       _propiedad = existingData['propiedad'];
       _operador = existingData['operador'];
-      _horometroCarga = existingData['horometroCarga'];
+      _horometroCarga = double.parse(existingData['horometroCarga']);
       _horometroiController.text = existingData['horometroi'].toString();
       _horometrofController.text = existingData['horometrof'].toString();
       // _horas = existingData['horas'];
@@ -154,6 +154,10 @@ class _FormModalState extends State<FormModal> {
       _tipoCombustible = existingData['tipoCombustible'];
       // _cantidadfController.text = existingData['cantidad'].toString();
       _nuevoOperario = existingData['operador'];
+
+      if (_maquinariaOptions.contains(_maquinaria)) {
+        _maquinaria = _maquinaria;
+      }
 
       // Limpiar la lista actual y agregar nuevas actividades si existen
       if (existingData.containsKey('actividades')) {
@@ -193,8 +197,10 @@ class _FormModalState extends State<FormModal> {
         _cantidad,
         _nuevoOperario,
         _horometroCarga,
-        _actividadesAgregadas);
-    await FormModalHelper.sendFormHormetro(formData, context);
+        _actividadesAgregadas,
+        widget.registro);
+    _isCreate = widget.registro == null ? true : false;
+    await FormModalHelper.sendFormHormetro(formData, _isCreate, context);
   }
 
 // Método para eliminar una actividad
@@ -305,15 +311,17 @@ class _FormModalState extends State<FormModal> {
                 decoration: const InputDecoration(labelText: 'Maquinaria'),
                 value: _maquinariaOptions.contains(_maquinaria)
                     ? _maquinaria
-                    : null, // Verificar el valor
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _maquinaria = newValue;
-                    });
-                    _fetchMaquinariaDetails(newValue);
-                  }
-                },
+                    : null,
+                onChanged: (_maquinaria.isNotEmpty)
+                    ? null // Deshabilitar cambios si ya hay una maquinaria seleccionada
+                    : (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _maquinaria = newValue;
+                          });
+                          _fetchMaquinariaDetails(newValue);
+                        }
+                      },
                 items: _maquinariaOptions.map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,

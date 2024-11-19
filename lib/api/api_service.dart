@@ -178,8 +178,12 @@ class ApiService {
   }
 
   // Method to send form data
-  static Future<void> sendFormData(Map<String, dynamic> formData) async {
-    const url = '$baseUrl/save-hr';
+  static Future<void> sendFormData(
+      Map<String, dynamic> formData, bool isCreate) async {
+    var url = '$baseUrl/save-hr';
+    if (!isCreate) {
+      url = '$baseUrl/update-hr';
+    }
 
     // Convertir el mapa a JSON
     String jsonFormData = jsonEncode(formData);

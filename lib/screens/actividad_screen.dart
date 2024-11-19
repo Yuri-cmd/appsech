@@ -38,7 +38,6 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
       _nviajes,
       _destino,
       _destinoE;
-  double _horasUsadas = 0.0;
 
   List<Map<String, dynamic>> _actividadOptions = [];
   List<String> _actividadGenerals = [];
@@ -321,8 +320,7 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
                           'destinoE': _destinoE
                         });
 
-                        _horasUsadas +=
-                            horasActividad; // Actualiza horas usadas en esta pantalla
+// Actualiza horas usadas en esta pantalla
 
                         // Limpia los campos después de guardar
                         _actividadId = null;

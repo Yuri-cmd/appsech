@@ -85,9 +85,9 @@ class FormModalHelper {
     }
   }
 
-  static Future<void> sendFormHormetro(formData, context) async {
+  static Future<void> sendFormHormetro(formData, isCreate, context) async {
     try {
-      await ApiService.sendFormData(formData);
+      await ApiService.sendFormData(formData, isCreate);
     } catch (e) {
       // Handle the error
     }
@@ -131,7 +131,8 @@ class FormModalHelper {
       cantidad,
       nuevoOperario,
       horometroCarga,
-      actividadesAgregadas) {
+      actividadesAgregadas,
+      id) {
     final formData = {
       'fecha': FormModalHelper.formatFecha(selectedDate),
       'semana': semana ?? '',
@@ -148,6 +149,7 @@ class FormModalHelper {
       'cantidad': cantidad ?? '',
       'nuevoOperario': nuevoOperario ?? '',
       'horometroCarga': horometroCarga,
+      'id': id,
       // Campos adicionales del modal de detalles
       'actividades': actividadesAgregadas
           .map((actividad) => {

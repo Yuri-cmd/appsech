@@ -9,7 +9,7 @@ import 'package:appsech/helpers/helper.dart';
 import 'package:appsech/theme/app_theme.dart';
 import 'package:appsech/widgets/widgets.dart';
 import 'package:appsech/modalform.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class Horometro extends StatefulWidget {
   const Horometro({super.key});
@@ -33,6 +33,7 @@ class _HorometroState extends State<Horometro> {
   Future<void> obtenerRegistros() async {
     try {
       final data = await ApiService.getRegistros();
+
       setState(() {
         registros = data;
       });
@@ -95,34 +96,40 @@ class _HorometroState extends State<Horometro> {
 
   Future<void> _descargarExcel() async {
     try {
+      // Solicita permisos de almacenamiento (necesario para Android)
+      var status = await Permission.storage.request();
+      if (!status.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permiso de almacenamiento denegado')),
+        );
+        return;
+      }
+
       final response = await ApiService.downloadExcel();
 
       if (response.statusCode == 200) {
-        // Obtiene el directorio de descargas
-        final directory = await getExternalStorageDirectory();
-        if (directory == null) {
+        // Obtén el directorio de descargas principal
+        Directory? downloadDir = Directory('/storage/emulated/0/Download');
+
+        if (!(await downloadDir.exists())) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No se pudo obtener el directorio')),
+            const SnackBar(
+                content:
+                    Text('No se pudo encontrar el directorio de descargas')),
           );
           return;
         }
 
-        // Define la ruta de la carpeta de descargas
-        final downloadDir = Directory('${directory.path}/Download');
-        if (!(await downloadDir.exists())) {
-          await downloadDir.create(
-              recursive: true); // Crea la carpeta si no existe
-        }
-
-        // Guarda el archivo en la carpeta de descargas
-        final file = File('${downloadDir.path}/registros.xlsx');
+        // Guarda el archivo en la carpeta de descargas principal
+        final file = File('${downloadDir.path}/controlDeMaquinarias.xlsx');
         await file.writeAsBytes(response.bodyBytes);
 
         // Muestra un mensaje de éxito
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text(
-                  'Archivo Excel descargado con éxito en la carpeta de descargas')),
+            content: Text(
+                'Archivo Excel descargado con éxito en la carpeta de Descargas'),
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,7 +138,7 @@ class _HorometroState extends State<Horometro> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al descargar el archivo Excel')),
+        SnackBar(content: Text('Error al descargar el archivo Excel: $e')),
       );
     }
   }
@@ -141,7 +148,7 @@ class _HorometroState extends State<Horometro> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppTheme.primary,
-        title: const Text('HR'),
+        title: const Text('Maquinaria - HR'),
       ),
       endDrawer: NavOptionsView(
         options: [
@@ -198,7 +205,7 @@ class _HorometroState extends State<Horometro> {
                     setState(() {
                       _selectedMaquinaria = newValue;
                     });
-                    _filterRegistros();
+                    // _filterRegistros();
                   }
                 },
                 items: _maquinariaOptions.map((String value) {

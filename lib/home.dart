@@ -46,7 +46,7 @@ class HomeScreen extends StatelessWidget {
                 context: context,
                 screenToNavigate: const IngresoPlanta()),
             ContentCard(
-                title: 'HR',
+                title: 'Maquinaria - HR',
                 icon: Icons.local_shipping,
                 context: context,
                 screenToNavigate: const Horometro()),

@@ -68,7 +68,7 @@ class RendimientoChart extends StatelessWidget {
                           1); // Ajusta el día en función del valor del eje X
                   return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
                 },
-                getTextStyles: (context, value) => TextStyle(
+                getTextStyles: (context, value) => const TextStyle(
                   fontSize: 10,
                   color: Colors.black,
                 ),
@@ -78,7 +78,7 @@ class RendimientoChart extends StatelessWidget {
                 reservedSize: 40,
                 margin: 8,
                 getTitles: (value) => value.toStringAsFixed(2),
-                getTextStyles: (context, value) => TextStyle(
+                getTextStyles: (context, value) => const TextStyle(
                   fontSize: 10,
                   color: Colors.black,
                 ),

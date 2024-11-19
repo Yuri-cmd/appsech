@@ -295,6 +295,7 @@ class _RegistroFormState extends State<RegistroForm> {
               DropdownMenuItem(value: 'maquinaria', child: Text('Maquinaria')),
               DropdownMenuItem(value: 'vehiculo', child: Text('Vehículo')),
               DropdownMenuItem(value: 'equipo', child: Text('Equipo')),
+              DropdownMenuItem(value: 'Compra', child: Text('Compra')),
             ],
             onChanged: (value) {
               setState(() {
@@ -308,46 +309,48 @@ class _RegistroFormState extends State<RegistroForm> {
             },
           ),
 
-          // Dropdown para seleccionar maquinaria
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: 'Modelo'),
-            value: _maquinarias.contains(_selectedMaquinaria)
-                ? _selectedMaquinaria
-                : null,
-            items: _maquinarias.map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              setState(() {
-                _selectedMaquinaria = newValue;
-              });
-              if (newValue != null) {
-                _fetchMaquinariaDetails(
-                    newValue); // Llamar detalles de maquinaria
-              }
-            },
-          ),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: 'Operario'),
-            value: _operario,
-            onChanged: (String? newValue) {
-              if (newValue != null) {
+          if (_selectedTipo != 'Compra')
+            // Dropdown para seleccionar maquinaria
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'Modelo'),
+              value: _maquinarias.contains(_selectedMaquinaria)
+                  ? _selectedMaquinaria
+                  : null,
+              items: _maquinarias.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
                 setState(() {
-                  _operario = newValue;
+                  _selectedMaquinaria = newValue;
                 });
-                _fetchMaquinariaDetails(newValue);
-              }
-            },
-            items: _operarioOptions.map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-          ),
+                if (newValue != null) {
+                  _fetchMaquinariaDetails(
+                      newValue); // Llamar detalles de maquinaria
+                }
+              },
+            ),
+          if (_selectedTipo != 'Compra')
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'Operario'),
+              value: _operario,
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    _operario = newValue;
+                  });
+                  _fetchMaquinariaDetails(newValue);
+                }
+              },
+              items: _operarioOptions.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
           DropdownButtonFormField<String>(
             value: _abastecimientoController.text.isEmpty
                 ? null
@@ -375,18 +378,19 @@ class _RegistroFormState extends State<RegistroForm> {
               return null;
             },
           ),
-
-          TextFormField(
-            controller: _horometroController,
-            decoration: const InputDecoration(labelText: 'Horómetro de carga'),
-            keyboardType: TextInputType.number,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor ingrese el horómetro de carga';
-              }
-              return null;
-            },
-          ),
+          if (_selectedTipo != 'Compra')
+            TextFormField(
+              controller: _horometroController,
+              decoration:
+                  const InputDecoration(labelText: 'Horómetro de carga'),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Por favor ingrese el horómetro de carga';
+                }
+                return null;
+              },
+            ),
           DropdownButtonFormField<String>(
             value: _selectedCombustible,
             decoration: const InputDecoration(labelText: 'Tipo de combustible'),
