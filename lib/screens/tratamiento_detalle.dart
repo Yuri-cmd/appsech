@@ -40,8 +40,31 @@ class _TratamientoDetalleScreenState extends State<TratamientoDetalleScreen> {
   final TextEditingController horaMaquinaExcavadoraController =
       TextEditingController();
   final TextEditingController humedadController = TextEditingController();
+  final TextEditingController fechaFinController = TextEditingController();
 
   int? _editingIndex; // Para saber si estamos editando una fila
+  String? tipoDesvio;
+  String? ubicacionDisposicion;
+
+  List<String> opciones = [
+    'Reutilización de residuos',
+    'Uso de cemento',
+    'Por Evaporación',
+    'Por desvío PTARI',
+    'Por desvío a PTT'
+  ];
+
+  List<String> ubicaciones = [
+    'DS1',
+    'DS2',
+    'DS3',
+    'DS4',
+    'DS5',
+    'DS6',
+    'Balsa de Evaporación',
+    'PTARI',
+    'PTT'
+  ];
 
   @override
   void initState() {
@@ -145,11 +168,6 @@ class _TratamientoDetalleScreenState extends State<TratamientoDetalleScreen> {
                   controller: tierraEstabilizadaController,
                   decoration:
                       const InputDecoration(labelText: 'Tierra estabilizada'),
-                ),
-                TextField(
-                  controller: ubicacionDisposicionController,
-                  decoration: const InputDecoration(
-                      labelText: 'Ubicación de disposición'),
                 ),
               ],
             ),
@@ -326,14 +344,49 @@ class _TratamientoDetalleScreenState extends State<TratamientoDetalleScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                TextFormField(
+                  controller: fechaFinController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Fecha Fin',
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2101),
+                    );
+                    if (pickedDate != null) {
+                      setState(() {
+                        fechaFinController.text =
+                            "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+                      });
+                    }
+                  },
+                ),
                 TextField(
                   controller: horaMaquinaVolqueteController,
                   decoration:
                       const InputDecoration(labelText: 'Hora Maquina Volquete'),
                 ),
-                TextField(
-                  controller: tipoDesvioController,
-                  decoration: const InputDecoration(labelText: 'Tipo Desvio'),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Tipo Desvío',
+                  ),
+                  value: tipoDesvio,
+                  onChanged: (String? nuevaOpcion) {
+                    setState(() {
+                      tipoDesvio = nuevaOpcion;
+                    });
+                  },
+                  items: opciones.map((String opcion) {
+                    return DropdownMenuItem<String>(
+                      value: opcion,
+                      child: Text(opcion),
+                    );
+                  }).toList(),
                 ),
                 TextField(
                   controller: horaMaquinaExcavadoraController,
@@ -343,6 +396,23 @@ class _TratamientoDetalleScreenState extends State<TratamientoDetalleScreen> {
                 TextField(
                   controller: humedadController,
                   decoration: const InputDecoration(labelText: 'Humedad'),
+                ),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Ubicacion de Disposición',
+                  ),
+                  value: ubicacionDisposicion,
+                  onChanged: (String? nuevaOpcion) {
+                    setState(() {
+                      ubicacionDisposicion = nuevaOpcion;
+                    });
+                  },
+                  items: ubicaciones.map((String opcion) {
+                    return DropdownMenuItem<String>(
+                      value: opcion,
+                      child: Text(opcion),
+                    );
+                  }).toList(),
                 ),
               ],
             ),
@@ -358,7 +428,6 @@ class _TratamientoDetalleScreenState extends State<TratamientoDetalleScreen> {
               onPressed: () {
                 // Validar que todos los campos estén llenos
                 if (horaMaquinaVolqueteController.text.isEmpty ||
-                    tipoDesvioController.text.isEmpty ||
                     horaMaquinaExcavadoraController.text.isEmpty ||
                     humedadController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -383,9 +452,11 @@ class _TratamientoDetalleScreenState extends State<TratamientoDetalleScreen> {
     // Crear un nuevo registro en el formato adecuado
     Map<String, dynamic> datos = {
       'hora_maquina_volquete': horaMaquinaVolqueteController.text,
-      'tipo_desvio': tipoDesvioController.text,
+      'tipo_desvio': tipoDesvio,
       'hora_maquina_excavadora': horaMaquinaExcavadoraController.text,
       'humedad': humedadController.text,
+      'ubicacion_disposicion': ubicacionDisposicion,
+      'fecha_fin': fechaFinController.text,
     };
 
     try {
@@ -434,7 +505,6 @@ class _TratamientoDetalleScreenState extends State<TratamientoDetalleScreen> {
             DataColumn(label: Text('Cemento utilizado (Ton)')),
             DataColumn(label: Text('Tierra Utilizada (Ton)')),
             DataColumn(label: Text('Tierra estabilizada')),
-            DataColumn(label: Text('Ubicación de disposición')),
             DataColumn(label: Text('Acciones')),
           ],
           rows: registros.asMap().entries.map((entry) {
@@ -449,7 +519,6 @@ class _TratamientoDetalleScreenState extends State<TratamientoDetalleScreen> {
               DataCell(Text(registro['cemento_utilizado'] ?? '')),
               DataCell(Text(registro['tierra_utilizada'] ?? '')),
               DataCell(Text(registro['tierra_estabilizada'] ?? '')),
-              DataCell(Text(registro['ubicacion_disposicion'] ?? '')),
               DataCell(Row(
                 children: [
                   IconButton(

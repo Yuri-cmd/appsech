@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:appsech/api/api_service.dart';
 import 'package:appsech/helpers/form_helpers.dart';
 import 'package:appsech/screens/tratamiento_detalle.dart';
@@ -8,6 +10,7 @@ class TratamientroCreateScreen extends StatefulWidget {
   const TratamientroCreateScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _TratamientroCreateScreenState createState() =>
       _TratamientroCreateScreenState();
 }
@@ -61,18 +64,30 @@ class _TratamientroCreateScreenState extends State<TratamientroCreateScreen> {
     final datos = {
       'numero_proceso': numeroProcesoController.text,
       'fecha_inicio': fechaInicioController.text,
-      'fecha_fin':
-          fechaFinController.text.isEmpty ? null : fechaFinController.text,
       'ubicacion_general': _ubicacionT ?? '',
       'ubicacion_especifica': ubicacionEspecificaController.text,
     };
 
     try {
-      final idTratamiento = await ApiService.guardarTratamiento(datos);
-      return idTratamiento; // Retornar el ID
+      final respuesta = await ApiService.guardarTratamiento(datos);
+      if (respuesta ==
+          'Ya existe un tratamiento pendiente en esta ubicación.') {
+        // Mostrar mensaje de error
+        mostrarMensajeError(respuesta);
+        return '';
+      }
+      return respuesta; // Retornar el ID si todo está bien
     } catch (e) {
-      return ''; // Retornar un valor vacío en caso de error
+      // Manejar otros errores
+      mostrarMensajeError('Hubo un error al guardar los datos.');
+      return '';
     }
+  }
+
+  void mostrarMensajeError(String mensaje) {
+    // Lógica para mostrar el mensaje de error en la UI, por ejemplo con un Snackbar
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
   @override
@@ -131,33 +146,6 @@ class _TratamientroCreateScreenState extends State<TratamientroCreateScreen> {
                 },
               ),
               const SizedBox(height: 16),
-
-              // Fecha Fin
-              TextFormField(
-                controller: fechaFinController,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Fecha Fin',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                  );
-                  if (pickedDate != null) {
-                    setState(() {
-                      fechaFinController.text =
-                          "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-
               // Ubicación General
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(

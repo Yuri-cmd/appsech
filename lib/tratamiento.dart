@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
 import 'package:appsech/api/api_service.dart';
+import 'package:appsech/helpers/form_helpers.dart';
 import 'package:appsech/screens/tratamiento_create_screen.dart';
 import 'package:appsech/screens/tratamiento_table.dart';
 import 'package:flutter/material.dart';
@@ -34,38 +35,20 @@ class _TratamientoState extends State<Tratamiento> {
   final TextEditingController costoCementoController = TextEditingController();
 
   // Lista de zonas para el filtro
-  final List<String> zonas = [
-    'Todos',
-    'DS1',
-    'DS2',
-    'DS3',
-    'DS4',
-    'DS5',
-    'DS6',
-    'AT1',
-    'AT2',
-    'AT3',
-    'L1',
-    'L2',
-    'L3',
-    'L1.1',
-    'L1.2',
-    'L4',
-    'P1',
-    'P2',
-    'P3',
-    'P4',
-    'P5',
-    'P6',
-    'Poza 1',
-    'Poza 2',
-    'Poza 3',
-    'Z.Fluorescentes',
-    'Z. Aerosoles',
-    'Planta',
-    'Externo',
-    'Cantera',
-  ];
+  List<String> zonas = [];
+  @override
+  void initState() {
+    super.initState();
+    _fetchZonasEspecificas();
+  }
+
+  Future<void> _fetchZonasEspecificas() async {
+    final zonasDetalle = await FormModalHelper.fetchZonasEspecificas();
+    setState(() {
+      zonas = zonasDetalle.toSet().toList();
+      zonas.insert(0, 'Todos');
+    });
+  }
 
   // Lista de estados para el filtro
   final List<String> estados = ['Todos', 'Pendiente', 'Finalizado'];
@@ -123,71 +106,6 @@ class _TratamientoState extends State<Tratamiento> {
           const SnackBar(content: Text('Error al cargar información')));
     }
   }
-
-  TextField _crearTextField(TextEditingController controller, String label) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(labelText: label),
-      keyboardType: TextInputType.number,
-    );
-  }
-
-  void _mostrarModalDatos() {
-    // Inicializa los controladores con los datos que necesitas
-    ratioVolqueteController.text = "0.013";
-    costoVolqueteController.text = "82.5";
-    ratioExcavadoraController.text = "0.14";
-    costoExcavadoraController.text = "198.75";
-    rendimientoVolqueteController.text = "2.5";
-    rendimientoExcavadoraController.text = "8";
-    precioCombustibleController.text = "14";
-    costoCementoController.text = "595";
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Actualizar Costos y Ratios'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _crearTextField(ratioVolqueteController, 'Ratio volquete'),
-                _crearTextField(costoVolqueteController, 'Costo volquete'),
-                _crearTextField(ratioExcavadoraController, 'Ratio excavadora'),
-                _crearTextField(costoExcavadoraController, 'Costo Excavadora'),
-                _crearTextField(rendimientoVolqueteController,
-                    'Rendimiento volquete (gal/hr)'),
-                _crearTextField(rendimientoExcavadoraController,
-                    'Rendimiento excavadora (gal/hr)'),
-                _crearTextField(
-                    precioCombustibleController, 'Precio combustible'),
-                _crearTextField(costoCementoController, 'Costo cemento'),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                // Aquí guardarías los datos
-                _guardarDatosActualizados();
-                Navigator.of(context).pop();
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _guardarDatosActualizados() {}
 
   Future<List<Map<String, dynamic>>> _fetchTratamientos() async {
     return await ApiService
@@ -325,7 +243,8 @@ class _TratamientoState extends State<Tratamiento> {
                                 : IconButton(
                                     icon: const Icon(Icons.info),
                                     onPressed: () {
-                                      // Mostrar más detalles
+                                      _mostrarInformacion(
+                                          context, tratamiento['id']);
                                     },
                                   ),
                           ),

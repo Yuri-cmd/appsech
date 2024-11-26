@@ -9,7 +9,6 @@ import 'package:appsech/helpers/helper.dart';
 import 'package:appsech/theme/app_theme.dart';
 import 'package:appsech/widgets/widgets.dart';
 import 'package:appsech/modalform.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class Horometro extends StatefulWidget {
   const Horometro({super.key});
@@ -96,15 +95,6 @@ class _HorometroState extends State<Horometro> {
 
   Future<void> _descargarExcel() async {
     try {
-      // Solicita permisos de almacenamiento (necesario para Android)
-      var status = await Permission.storage.request();
-      if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permiso de almacenamiento denegado')),
-        );
-        return;
-      }
-
       final response = await ApiService.downloadExcel();
 
       if (response.statusCode == 200) {

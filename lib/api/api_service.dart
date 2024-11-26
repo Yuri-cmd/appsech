@@ -292,6 +292,32 @@ class ApiService {
     }
   }
 
+  static Future<List<String>> fetchZonasEspecificas() async {
+    const url = '$baseUrl/get-ubicaciones-especificas';
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> decodedResponse = json.decode(response.body);
+        // Extrae los nombres de las zonas de la respuesta
+        return decodedResponse
+            .map<String>((map) {
+              if (map is Map<String, dynamic> && map.containsKey('nombre')) {
+                return map['nombre'] as String;
+              }
+              return ''; // Maneja el caso donde 'zona' no esté presente
+            })
+            .where(
+                (name) => name.isNotEmpty) // Filtra valores vacíos si los hay
+            .toList();
+      } else {
+        throw Exception('Failed to load zonas');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // Obtener actividad general
   static Future<List<String>> fetchActividadGeneral(String actividad) async {
     final response =
@@ -410,7 +436,10 @@ class ApiService {
       if (response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
         return responseData['tratamiento']['id']
-            .toString(); // Asegúrate de devolverlo como String
+            .toString(); // Devolver el ID como String
+      } else if (response.statusCode == 400) {
+        final responseData = jsonDecode(response.body);
+        return responseData['message']; // Retornar el mensaje de error
       } else {
         throw Exception('Error al guardar los datos');
       }
@@ -538,6 +567,171 @@ class ApiService {
     } catch (e) {
       // print('Error al hacer la solicitud: $e');
       return '0.0';
+    }
+  }
+
+  static Future<void> sendFormDataGrifo(
+      Map<String, dynamic> formData, bool isCreate) async {
+    var url = '$baseUrl/registro-grifo';
+    if (!isCreate) {
+      url = '$baseUrl/editar-grifo';
+    }
+    String jsonFormData = jsonEncode(formData);
+
+    try {
+      await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json'
+        }, // Establecer el encabezado correcto
+        body: jsonFormData,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<bool> eliminarGrifo(int id) async {
+    String apiUrl =
+        'https://magussystems.com/appsheet/public/api/eliminar-grifo/$id';
+
+    try {
+      final response = await http.delete(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>> getGrifoOne(int id) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/get/grifo/one/$id'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        // Si la respuesta es una lista, devuelve el primer elemento
+        if (data is List && data.isNotEmpty) {
+          return Map<String, dynamic>.from(data[0]);
+        }
+        // Si es un objeto, simplemente devuélvelo
+        return Map<String, dynamic>.from(data);
+      } else {
+        throw Exception('Error al cargar los datos');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchControles(
+      String tipo, int id) async {
+    print('$baseUrl/controles-calidad/$tipo/$id');
+    final response =
+        await http.get(Uri.parse('$baseUrl/controles-calidad/$tipo/$id'));
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    } else {
+      throw Exception('Error al cargar los datos');
+    }
+  }
+
+  static Future<void> createControl(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/controles-calidad'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    if (response.statusCode != 201) {
+      throw Exception('Error al crear el control');
+    }
+  }
+
+  static Future<void> updateControl(int id, Map<String, dynamic> data) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/controles-calidad/$id'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Error al actualizar el control');
+    }
+  }
+
+  static Future<void> deleteControl(int id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/controles-calidad/$id'),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Error al eliminar el control');
+    }
+  }
+
+  static Future<void> saveDatosPtari(Map<String, dynamic> requestBody) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/guardar-datos-ptari'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode(requestBody),
+    );
+    if (response.statusCode == 200) {
+      return;
+    } else {
+      throw Exception('Error al guardar los datos');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchPtari() async {
+    final response = await http.get(Uri.parse('$baseUrl/get-datos-ptari'));
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    } else {
+      throw Exception('Error al cargar los datos');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchPtariAll() async {
+    final response = await http.get(Uri.parse('$baseUrl/get-ptari'));
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(json.decode(response.body));
+    } else {
+      throw Exception('Error al cargar los datos');
+    }
+  }
+
+  static Future<List<List<String>>> fetchTablePtari(int id) async {
+    final response = await http.get(Uri.parse('$baseUrl/get-datos-tabla/$id'));
+    if (response.statusCode == 200) {
+      // Mapeamos cada lista anidada y sus elementos para convertirlos en Strings
+      return (json.decode(response.body) as List)
+          .map<List<String>>(
+              (row) => (row as List).map((e) => e.toString()).toList())
+          .toList();
+    } else {
+      throw Exception('Error al cargar los datos');
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchProPtard(int id) async {
+    final response = await http.get(Uri.parse('$baseUrl/get-datos-ptard/$id'));
+    if (response.statusCode == 200) {
+      // Decodifica el JSON directamente como un mapa
+      return json.decode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Error al cargar los datos');
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchProPtari(int id) async {
+    final response = await http.get(Uri.parse('$baseUrl/get-datos-ptari/$id'));
+    if (response.statusCode == 200) {
+      // Decodifica el JSON directamente como un mapa
+      return json.decode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Error al cargar los datos');
     }
   }
 }

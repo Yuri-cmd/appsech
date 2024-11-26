@@ -42,6 +42,8 @@ class RendimientoChart extends StatelessWidget {
     FlSpot(4, 0.60),
   ];
 
+  RendimientoChart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

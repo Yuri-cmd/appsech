@@ -1,3 +1,4 @@
+import 'package:appsech/grifo.dart';
 import 'package:appsech/horometro.dart';
 import 'package:intl/intl.dart';
 import 'package:appsech/api/api_service.dart';
@@ -70,6 +71,15 @@ class FormModalHelper {
   static Future<List<String>> fetchDetalleZona(String ubicacionId) async {
     try {
       return await ApiService.fetchZonaDetalle(ubicacionId);
+    } catch (e) {
+      // print('Error fetching actividades: $e');
+      return [];
+    }
+  }
+
+  static Future<List<String>> fetchZonasEspecificas() async {
+    try {
+      return await ApiService.fetchZonasEspecificas();
     } catch (e) {
       // print('Error fetching actividades: $e');
       return [];
@@ -166,5 +176,61 @@ class FormModalHelper {
           .toList(),
     };
     return formData;
+  }
+
+  static Map<String, dynamic> formDataGrifo(
+      selectedTipo,
+      selectedMaquinaria,
+      operario,
+      abastecimientoController,
+      horometroController,
+      selectedCombustible,
+      cantidadController,
+      marcaController,
+      selectDate,
+      id) {
+    final formData = {
+      'tipo': selectedTipo,
+      'maquinaria': selectedMaquinaria ?? '',
+      'operario': operario ?? '',
+      'abastecimiento': abastecimientoController ?? '',
+      'horometro': horometroController ?? '',
+      'combustible': selectedCombustible ?? '',
+      'cantidad': cantidadController ?? '',
+      'observacion': marcaController,
+      'fecha': FormModalHelper.formatFecha(selectDate),
+      'id': id,
+    };
+    return formData;
+  }
+
+  static Future<void> sendFormGrifo(formData, isCreate, context) async {
+    try {
+      await ApiService.sendFormDataGrifo(formData, isCreate);
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Éxito'),
+            content: const Text('Los datos se guardaron correctamente.'),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (BuildContext context) => const Grifo(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      // print(e);
+    }
   }
 }
