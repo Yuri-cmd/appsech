@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:appsech/api/api_service.dart';
@@ -116,8 +118,8 @@ class _ReportePtariState extends State<ReportePtari> {
                 ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.primary,
-        child: const Icon(Icons.download),
         onPressed: _downloadExcel,
+        child: const Icon(Icons.download),
       ),
     );
   }

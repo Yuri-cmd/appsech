@@ -1,8 +1,11 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
 import 'dart:io'; // Importa esta librería para trabajar con archivos
+import 'package:appsech/chart/budget_activity_chart.dart';
+import 'package:appsech/chart/budget_costo_chart.dart';
+import 'package:appsech/chart/utilizacion_maquinarias_chart.dart';
 import 'package:appsech/helpers/form_helpers.dart';
-import 'package:appsech/widgets/prueba.dart';
+import 'package:appsech/screens/budget_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:appsech/api/api_service.dart';
 import 'package:appsech/helpers/helper.dart';
@@ -32,9 +35,9 @@ class _HorometroState extends State<Horometro> {
   Future<void> obtenerRegistros() async {
     try {
       final data = await ApiService.getRegistros();
-
       setState(() {
         registros = data;
+        _filteredRegistros = data;
       });
     } catch (e) {
       // Handle error
@@ -47,18 +50,6 @@ class _HorometroState extends State<Horometro> {
       _maquinariaOptions = options;
       _filteredRegistros =
           registros; // Inicialmente, muestra todos los registros
-    });
-  }
-
-  void _filterRegistros() {
-    setState(() {
-      if (_selectedMaquinaria == null) {
-        _filteredRegistros = registros; // Muestra todos si no hay filtro
-      } else {
-        _filteredRegistros = registros.where((registro) {
-          return registro['maquinaria'] == _selectedMaquinaria;
-        }).toList();
-      }
     });
   }
 
@@ -143,40 +134,24 @@ class _HorometroState extends State<Horometro> {
       endDrawer: NavOptionsView(
         options: [
           NavOption(
-            title: 'DISTRIBUCIÓN DE INGRESO DE CAMIONES',
+            title: 'CONSUMO DE BUDYET VS ACTIVIDAD',
             icon: Icons.pie_chart,
-            targetView: const PieChartGrafic(
-              values: [2, 2, 16],
-              colors: [Colors.blue, Colors.orange, Colors.grey],
-              labels: ['', '', ''],
-            ),
+            targetView: const BudgetActivityChart(),
           ),
           NavOption(
-            title: 'CAMIONES - ACUM.',
+            title: 'CONSUMO DE BUDYET-ALQ-MAQ',
             icon: Icons.pie_chart,
-            targetView: RendimientoChart(),
+            targetView: const BudgetVsCostChart(),
           ),
           NavOption(
-            title: 'INGRESO DE RESIDUOS ACUM. (Ton)',
+            title: 'UTILIZACIÓN DE MAQUINARIAS OPERATIVAS',
             icon: Icons.pie_chart,
-            targetView: const PieChartGrafic(
-              values: [3979, 2874, 969, 7408],
-              colors: [Colors.blue, Colors.orange, Colors.grey, Colors.yellow],
-              labels: ['A Deposito', 'A Plataforma', 'A Losa', 'A Balsa'],
-            ),
+            targetView: const UtilizacionMaquinariasChart(),
           ),
           NavOption(
-            title: 'Demora en la atención de unidades',
+            title: 'BUDGET',
             icon: Icons.pie_chart,
-            targetView: const PieChartGrafic(
-              values: [50, 40, 10],
-              colors: [Colors.blue, Colors.orange, Colors.grey],
-              labels: [
-                'Casual operativa',
-                'Casual administrativas',
-                'Casual derivadas al cliente'
-              ],
-            ),
+            targetView: const BudgetTable(),
           ),
         ],
       ),

@@ -23,6 +23,7 @@ dependencies:
   excel: ^2.0.8
   pdf: ^3.6.2
   open_file: ^3.2.1
+  syncfusion_flutter_charts: ^21.2.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

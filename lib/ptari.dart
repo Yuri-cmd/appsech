@@ -1,4 +1,4 @@
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, use_build_context_synchronously
 import 'package:appsech/api/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:appsech/widgets/nav_options_view.dart';
@@ -109,7 +109,7 @@ class _PtariState extends State<Ptari> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => FormularioPtari()),
+            MaterialPageRoute(builder: (context) => const FormularioPtari()),
           );
         },
         child: const Icon(Icons.add),

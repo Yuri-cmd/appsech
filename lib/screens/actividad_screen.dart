@@ -1,3 +1,4 @@
+import 'package:appsech/api/api_service.dart';
 import 'package:appsech/helpers/form_helpers.dart';
 import 'package:flutter/material.dart';
 
@@ -37,8 +38,8 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
       _ubicacionT,
       _nviajes,
       _destino,
-      _destinoE;
-
+      _destinoE,
+      _idZona;
   List<Map<String, dynamic>> _actividadOptions = [];
   List<String> _actividadGenerals = [];
   List<String> _ubicacionesGenerales = [];
@@ -59,29 +60,54 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
           _horasController.text = _horasActividad ?? '';
           _descripcion = widget.actividad!['descripcion'];
           _descripcionController.text = _descripcion ?? '';
-          _actividadId = int.tryParse(widget.actividad!['actividadId'] ?? '');
-          _actividadNombre = widget.actividad!['actividadNombre'];
-          _nviajes = widget.actividad!['nviajes'];
-          _nviajesController.text = _nviajes.toString();
-          _destino = widget.actividad!['destino'];
-          _destinoId = widget.actividad!['destinoId'];
-          _fetchActividadGenerals(_actividadId.toString()).then((_) {
-            _actividadg = widget.actividad!['actividadGeneral'];
-            _fetchDetalleZona(widget.actividad!['idUbi']).then((_) {
-              // Check if idUbi exists in _zonas and set _ubicacion accordingly
-              if (_zonas
-                  .map((e) => e['id'])
-                  .contains(widget.actividad!['idUbi'])) {
-                _ubicacion = widget.actividad!['idUbi'];
-                _ubicacionT = widget.actividad!['ubicacion'];
-                _fetchDetalleDestino(_destinoId).then((_) {
-                  _destinoE = widget.actividad!['destinoE'];
+          if (widget.actividad!['actividadNombre'] != null) {
+            _actividadNombre = widget.actividad!['actividadNombre'];
+          } else {
+            _actividadNombre = widget.actividad!['actividad'];
+          }
+          _fetchActividadGeneralId(
+                  _actividadNombre.toString(), widget.maquinaria)
+              .then((_) {
+            _nviajes = widget.actividad!['nviajes'];
+            _nviajesController.text = _nviajes.toString();
+            _destino = widget.actividad!['destino'];
+            _destinoId = widget.actividad!['destinoId'];
+            _fetchActividadGenerals(_actividadId.toString()).then((_) {
+              _actividadg = widget.actividad!['actividadGeneral'];
+              if (widget.actividad!['idUbi'] != null) {
+                _fetchDetalleZona(widget.actividad!['idUbi']).then((_) {
+                  // Check if idUbi exists in _zonas and set _ubicacion accordingly
+                  if (_zonas
+                      .map((e) => e['id'])
+                      .contains(widget.actividad!['idUbi'])) {
+                    _ubicacion = widget.actividad!['idUbi'];
+                    _ubicacionT = widget.actividad!['ubicacion'];
+                    _fetchDetalleDestino(_destinoId).then((_) {
+                      _destinoE = widget.actividad!['destinoE'];
+                    });
+                  } else {
+                    _ubicacion = null; // Reset if value doesn't exist
+                  }
+                  _ubicaciong = widget.actividad!['ubicaciong'];
+                  setState(() {}); // Update the state after loading everything
                 });
               } else {
-                _ubicacion = null; // Reset if value doesn't exist
+                _fetchZonaId(widget.actividad!['ubicacion']).then((_) {
+                  _fetchDetalleZona(_idZona).then((_) {
+                    if (_zonas.map((e) => e['id']).contains(_idZona!.trim())) {
+                      _ubicacion = _idZona!.trim(); // Usamos el valor limpio
+                      _ubicacionT = widget.actividad!['ubicacion'];
+                      _fetchDetalleDestino(_destinoId).then((_) {
+                        _destinoE = widget.actividad!['destinoE'];
+                      });
+                    } else {
+                      _ubicacion = null; // Reset if value doesn't exist
+                    }
+
+                    _ubicaciong = widget.actividad!['ubicaciong'];
+                  });
+                });
               }
-              _ubicaciong = widget.actividad!['ubicaciong'];
-              setState(() {}); // Update the state after loading everything
             });
           });
         }
@@ -101,6 +127,23 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
         await FormModalHelper.fetchActividadGenerals(actividad);
     setState(() {
       _actividadGenerals = actividadGeneralsResponse.toSet().toList();
+      _actividadg = null;
+    });
+  }
+
+  Future<void> _fetchActividadGeneralId(
+      String nombreActividad, String nombreMaquinaria) async {
+    final actividadId = await ApiService.fetchActividadGeneralId(
+        nombreActividad, nombreMaquinaria);
+    setState(() {
+      _actividadId = int.tryParse(actividadId);
+    });
+  }
+
+  Future<void> _fetchZonaId(String zona) async {
+    final zonaId = await ApiService.fetchZonaId(zona);
+    setState(() {
+      _idZona = zonaId;
     });
   }
 
@@ -116,6 +159,7 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
     final zonasDetalle = await FormModalHelper.fetchDetalleZona(ubicacionId);
     setState(() {
       _ubicacionesGenerales = zonasDetalle.toSet().toList();
+      _ubicaciong = null;
     });
   }
 
@@ -161,7 +205,8 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
                 },
               ),
               DropdownButtonFormField<int>(
-                decoration: const InputDecoration(labelText: 'Actividad'),
+                decoration:
+                    const InputDecoration(labelText: 'Actividad General'),
                 value:
                     _actividadId, // Usar _actividadId para almacenar el valor seleccionado
                 onChanged: (int? newId) async {
@@ -190,7 +235,7 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
               ),
               DropdownButtonFormField<String>(
                 decoration:
-                    const InputDecoration(labelText: 'Actividad General'),
+                    const InputDecoration(labelText: 'Actividad Especifica'),
                 value: _actividadg,
                 onChanged: (String? newValue) {
                   setState(() {
@@ -219,9 +264,14 @@ class _AgregarActividadScreenState extends State<AgregarActividadScreen> {
                 value: _ubicacion,
                 onChanged: (String? newValue) {
                   setState(() {
-                    _ubicacion = newValue;
-                    _ubicacionT = _zonas
-                        .firstWhere((zona) => zona['id'] == newValue)['nombre'];
+                    // Asegúrate de que el valor seleccionado esté en las opciones
+                    if (_zonas.any((zona) => zona['id'] == newValue)) {
+                      _ubicacion = newValue;
+                      _ubicacionT = _zonas.firstWhere(
+                          (zona) => zona['id'] == newValue)['nombre'];
+                    } else {
+                      _ubicacion = null; // Si no se encuentra, resetea el valor
+                    }
                   });
                   _fetchDetalleZona(newValue);
                 },

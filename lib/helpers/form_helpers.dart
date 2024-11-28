@@ -39,6 +39,7 @@ class FormModalHelper {
     try {
       // Suponiendo que la API devuelve una lista de actividades con id y nombre
       final response = await ApiService.fetchMaquinariaActividades(maquinaria);
+      print(response);
       return response
           .map<Map<String, dynamic>>((item) => {
                 'id': item['id_actividad'],

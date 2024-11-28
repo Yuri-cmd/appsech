@@ -241,7 +241,6 @@ class _FormModalState extends State<FormModal> {
   void _editActivity(int index) async {
     // Obtén la actividad que deseas editar
     final actividad = _actividadesAgregadas[index];
-
     // Navega a la pantalla de agregar actividad con los datos de la actividad a editar
     final updatedActividad = await Navigator.push(
       context,

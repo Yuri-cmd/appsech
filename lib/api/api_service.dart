@@ -4,144 +4,97 @@ import 'dart:convert';
 class ApiService {
   static const String baseUrl = 'https://magussystems.com/appsheet/public/api';
 
-  // Method to get records
-  static Future<List<Map<String, dynamic>>> getRegistros() async {
-    const url = '$baseUrl/get-hr';
+  static Future<dynamic> _get(String endpoint) async {
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse('$baseUrl/$endpoint'));
       if (response.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+        return json.decode(response.body);
       } else {
-        throw Exception('Error al cargar los datos');
+        throw Exception('Failed to GET from $endpoint');
       }
     } catch (e) {
       rethrow;
     }
   }
 
-  // Method to delete a record
-  static Future<bool> eliminarRegistro(int id) async {
-    const url = '$baseUrl/delete-hr';
+  static Future<dynamic> _post(
+      String endpoint, Map<String, dynamic> data) async {
     try {
       final response = await http.post(
-        Uri.parse(url),
-        body: {'id': id.toString()},
+        Uri.parse('$baseUrl/$endpoint'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
       );
       if (response.statusCode == 200) {
-        return true;
+        return json.decode(response.body);
       } else {
-        return false;
+        throw Exception('Failed to POST to $endpoint');
       }
     } catch (e) {
-      return false;
+      rethrow;
     }
+  }
+
+  // Method to get records
+  static Future<List<Map<String, dynamic>>> getRegistros() async {
+    final data = await _get('get-hr');
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  // Method to delete a record
+  static Future<bool> eliminarRegistro(int id) async {
+    final response = await _post('delete-hr', {'id': id.toString()});
+    return response['success'] ?? false;
   }
 
   // Method to save or update a record
   static Future<bool> guardarRegistro(Map<String, dynamic> datos,
       {int? id}) async {
-    final String url = id != null ? '$baseUrl/update-hr' : '$baseUrl/create-hr';
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        body: id != null ? {...datos, 'id': id.toString()} : datos,
-      );
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e) {
-      return false;
-    }
+    final endpoint = id != null ? 'update-hr' : 'create-hr';
+    final response =
+        await _post(endpoint, id != null ? {...datos, 'id': id} : datos);
+    return response['success'] ?? false;
   }
 
   // Method to fetch maquinaria options
   static Future<List<String>> fetchMaquinariaOptions() async {
-    const url = '$baseUrl/maquinaria';
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final List<dynamic> maquinariaList = json.decode(response.body);
-        return maquinariaList
-            .map((maquinaria) => maquinaria['nombre'].toString())
-            .toList();
-      } else {
-        throw Exception('Failed to load maquinaria options');
-      }
-    } catch (e) {
-      rethrow;
-    }
+    final data = await _get('maquinaria');
+    return List<String>.from(data.map((item) => item['nombre'].toString()));
   }
 
   static Future<List<String>> fetchTipoVehichulo(String? tipo) async {
-    final url = '$baseUrl/maquinaria/$tipo';
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final List<dynamic> maquinariaList = json.decode(response.body);
-        return maquinariaList
-            .map((maquinaria) => maquinaria['nombre'].toString())
-            .toList();
-      } else {
-        throw Exception('Failed to load maquinaria options');
-      }
-    } catch (e) {
-      rethrow;
-    }
+    final maquinariaList = await _get('maquinaria/$tipo');
+    return maquinariaList
+        .map<String>((maquinaria) => maquinaria['nombre'].toString())
+        .toList();
   }
 
   static Future<List<Map<String, dynamic>>> fetchZonas() async {
-    const url = '$baseUrl/get-zonas';
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final List<dynamic> zonasList = json.decode(response.body);
-        return zonasList.map((zona) {
-          return {
-            'id': zona['id'].toString(),
-            'nombre': zona['nombre'].toString(),
-          };
-        }).toList();
-      } else {
-        throw Exception('Failed to load zonas');
-      }
-    } catch (e) {
-      rethrow;
-    }
+    final zonasList = await _get('get-zonas');
+    return zonasList.map<Map<String, dynamic>>((zona) {
+      return {
+        'id': zona['id'].toString(),
+        'nombre': zona['nombre'].toString(),
+      };
+    }).toList();
   }
 
   // Method to fetch maquinaria details
   static Future<List<Map<String, dynamic>>> fetchMaquinariaDetails(
       String maquinaria) async {
-    final url = '$baseUrl/maquinaria/details/$maquinaria';
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        // Asegúrate de que el cuerpo de la respuesta sea una lista
-        final List<dynamic> jsonResponse = json.decode(response.body);
-        // Convertir la lista dinámica a una lista de mapas
-        return jsonResponse.cast<Map<String, dynamic>>();
-      } else {
-        throw Exception('Failed to load maquinaria details');
-      }
-    } catch (e) {
-      rethrow;
-    }
+    final jsonResponse = await _get('maquinaria/details/$maquinaria');
+    return jsonResponse.cast<Map<String, dynamic>>();
   }
 
   static Future<List<String>> fetchOperarioMaquinaria(String maquinaria) async {
-    final url = '$baseUrl/maquinaria/operario/$maquinaria';
     try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final List<dynamic> maquinariaList = json.decode(response.body);
-        return maquinariaList
-            .map((maquinaria) => maquinaria['nombre'].toString())
-            .toList();
-      } else {
-        throw Exception('Failed to load maquinaria options');
-      }
+      // Llamada al método _get con el endpoint adecuado
+      final maquinariaList = await _get('maquinaria/operario/$maquinaria');
+
+      // Mapeo de la respuesta para extraer los nombres
+      return maquinariaList
+          .map<String>((maquinaria) => maquinaria['nombre'].toString())
+          .toList();
     } catch (e) {
       rethrow;
     }
@@ -149,14 +102,9 @@ class ApiService {
 
   static Future<Map<String, dynamic>> fetchAbastecimientoMaquinaria(
       String maquinaria) async {
-    final url = '$baseUrl/maquinaria/abastecimiento/$maquinaria';
     try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to load maquinaria details');
-      }
+      final response = await _get('maquinaria/abastecimiento/$maquinaria');
+      return response as Map<String, dynamic>;
     } catch (e) {
       rethrow;
     }
@@ -164,14 +112,9 @@ class ApiService {
 
   static Future<Map<String, dynamic>> fetchCombustibleMaquinaria(
       String maquinaria) async {
-    final url = '$baseUrl/maquinaria/combustible/$maquinaria';
     try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to load maquinaria details');
-      }
+      final response = await _get('maquinaria/combustible/$maquinaria');
+      return response as Map<String, dynamic>;
     } catch (e) {
       rethrow;
     }
@@ -224,142 +167,88 @@ class ApiService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getAllRegistros() async {
-    final response = await http.get(Uri.parse('$baseUrl/get-hr'));
-
-    if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      throw Exception('Failed to load registros');
-    }
-  }
-
-  // Method to fetch maquinaria activities
   static Future<List<Map<String, dynamic>>> fetchMaquinariaActividades(
       String maquinaria) async {
-    final url = '$baseUrl/maquinarias/actividades?nombre=$maquinaria';
-    try {
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> decodedResponse = json.decode(response.body);
-        // Extrae los nombres de las actividades de la respuesta
-        return decodedResponse
-            .map<Map<String, dynamic>>((map) {
-              if (map is Map<String, dynamic> &&
-                  map.containsKey('id_actividad') &&
-                  map.containsKey('nombre')) {
-                return {
-                  'id_actividad': map['id_actividad'],
-                  'nombre': map['nombre'],
-                };
-              }
-              return {}; // Devuelve un mapa vacío si 'id_actividad' o 'nombre' no están presentes
-            })
-            .where((item) => item.isNotEmpty)
-            .toList();
-      } else {
-        throw Exception('Failed to load maquinaria activities');
-      }
-    } catch (e) {
-      rethrow;
-    }
+    final List<dynamic> decodedResponse =
+        await _get('maquinarias/actividades?nombre=$maquinaria');
+    return decodedResponse
+        .map<Map<String, dynamic>>((map) {
+          if (map is Map<String, dynamic> &&
+              map.containsKey('id_actividad') &&
+              map.containsKey('nombre')) {
+            return {
+              'id_actividad': map['id_actividad'],
+              'nombre': map['nombre'],
+            };
+          }
+          return {};
+        })
+        .where((item) => item.isNotEmpty)
+        .toList();
   }
 
   static Future<List<String>> fetchZonaDetalle(String ubicacionId) async {
-    final url = '$baseUrl/get-detalle/$ubicacionId';
-    try {
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> decodedResponse = json.decode(response.body);
-        // Extrae los nombres de las zonas de la respuesta
-        return decodedResponse
-            .map<String>((map) {
-              if (map is Map<String, dynamic> && map.containsKey('nombre')) {
-                return map['nombre'] as String;
-              }
-              return ''; // Maneja el caso donde 'zona' no esté presente
-            })
-            .where(
-                (name) => name.isNotEmpty) // Filtra valores vacíos si los hay
-            .toList();
-      } else {
-        throw Exception('Failed to load zonas');
-      }
-    } catch (e) {
-      rethrow;
-    }
+    final List<dynamic> zonasList = await _get('get-detalle/$ubicacionId');
+    return zonasList
+        .map<String>((map) {
+          if (map is Map<String, dynamic> && map.containsKey('nombre')) {
+            return map['nombre'] as String;
+          }
+          return ''; // Maneja el caso cuando 'nombre' no esté presente
+        })
+        .where((name) => name.isNotEmpty) // Filtra valores vacíos
+        .toList();
   }
 
   static Future<List<String>> fetchZonasEspecificas() async {
-    const url = '$baseUrl/get-ubicaciones-especificas';
-    try {
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> decodedResponse = json.decode(response.body);
-        // Extrae los nombres de las zonas de la respuesta
-        return decodedResponse
-            .map<String>((map) {
-              if (map is Map<String, dynamic> && map.containsKey('nombre')) {
-                return map['nombre'] as String;
-              }
-              return ''; // Maneja el caso donde 'zona' no esté presente
-            })
-            .where(
-                (name) => name.isNotEmpty) // Filtra valores vacíos si los hay
-            .toList();
-      } else {
-        throw Exception('Failed to load zonas');
-      }
-    } catch (e) {
-      rethrow;
-    }
+    final List<dynamic> zonasList = await _get('get-ubicaciones-especificas');
+    return zonasList
+        .map<String>((map) {
+          if (map is Map<String, dynamic> && map.containsKey('nombre')) {
+            return map['nombre'] as String;
+          }
+          return ''; // Maneja el caso cuando 'nombre' no esté presente
+        })
+        .where((name) => name.isNotEmpty) // Filtra valores vacíos
+        .toList();
   }
 
-  // Obtener actividad general
   static Future<List<String>> fetchActividadGeneral(String actividad) async {
-    final response =
-        await http.get(Uri.parse('$baseUrl/actividad-general/$actividad'));
-    if (response.statusCode == 200) {
-      // Decodificamos la respuesta como una lista de mapas
-      List<dynamic> data = jsonDecode(response.body);
+    List<dynamic> data = await _get('actividad-general/$actividad');
+    return data
+        .map<String>((map) {
+          if (map is Map<String, dynamic> && map.containsKey('nombre')) {
+            return map['nombre'] as String;
+          }
+          return '';
+        })
+        .where((name) => name.isNotEmpty) // Filtra valores vacíos
+        .toList();
+  }
 
-      // Ahora extraemos los nombres
-      List<String> result = data
-          .map<String>((map) {
-            if (map is Map<String, dynamic> && map.containsKey('nombre')) {
-              return map['nombre'] as String;
-            }
-            return '';
-          })
-          .where((name) => name.isNotEmpty) // Filtramos los nombres vacíos
-          .toList();
-      return result;
-    } else {
-      throw Exception('Error al obtener actividad general');
-    }
+  static Future<String> fetchActividadGeneralId(
+      String nombreActividad, String nombreMaquinaria) async {
+    final response =
+        await _get('actividad-general-id/$nombreActividad/$nombreMaquinaria');
+    return response.toString();
+  }
+
+  static Future<String> fetchZonaId(String zona) async {
+    final response = await _get('zona-id/$zona');
+    return response.toString();
   }
 
   static Future<List<String>> fetchOperarios() async {
-    final response = await http.get(Uri.parse('$baseUrl/operarios'));
-    if (response.statusCode == 200) {
-      List<dynamic> data = jsonDecode(response.body);
-
-      List<String> result = data
-          .map<String>((map) {
-            if (map is Map<String, dynamic> && map.containsKey('nombre')) {
-              return map['nombre'] as String;
-            }
-            return '';
-          })
-          .where((name) => name.isNotEmpty)
-          .toList();
-      return result;
-    } else {
-      throw Exception('Error al obtener actividad general');
-    }
+    List<dynamic> data = await _get('operarios');
+    return data
+        .map<String>((map) {
+          if (map is Map<String, dynamic> && map.containsKey('nombre')) {
+            return map['nombre'] as String;
+          }
+          return '';
+        })
+        .where((name) => name.isNotEmpty) // Filtra valores vacíos
+        .toList();
   }
 
   static Future<Map<String, dynamic>> getHorometroOne(int id) async {
@@ -395,33 +284,13 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> saveMeta(String meta) async {
-    const url = '$baseUrl/meta_almacen'; // Reemplaza con el endpoint correcto
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: json.encode(
-          {'meta': meta}), // Asegúrate de que la clave 'meta' sea correcta
-    );
-
-    if (response.statusCode == 200) {
-      return json.decode(response.body); // Devuelve la respuesta
-    } else {
-      throw Exception('Failed to save meta');
-    }
+    final response = await _post('meta_almacen', {'meta': meta});
+    return response;
   }
 
   static Future<Map<String, dynamic>> fetchLatestMeta() async {
-    const url =
-        '$baseUrl/meta_almacen/latest'; // Asegúrate de que la URL sea correcta
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      return json.decode(response.body); // Devuelve la respuesta
-    } else {
-      throw Exception('Failed to fetch latest meta');
-    }
+    final response = await _get('meta_almacen/latest');
+    return response;
   }
 
   static Future<String> guardarTratamiento(Map<String, dynamic> datos) async {
@@ -628,7 +497,6 @@ class ApiService {
 
   static Future<List<Map<String, dynamic>>> fetchControles(
       String tipo, int id) async {
-    print('$baseUrl/controles-calidad/$tipo/$id');
     final response =
         await http.get(Uri.parse('$baseUrl/controles-calidad/$tipo/$id'));
     if (response.statusCode == 200) {
@@ -733,5 +601,99 @@ class ApiService {
     } else {
       throw Exception('Error al cargar los datos');
     }
+  }
+
+  // Método para llamar a la API de consumo de actividades
+  static Future<List<Map<String, dynamic>>> fetchConsumoActividad(
+      String startDate, String endDate) async {
+    const String url = '$baseUrl/consumo-actividad';
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'start_date': startDate,
+        'end_date': endDate,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception('Error al cargar los datos: ${response.body}');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchBudgetForYear(int year) async {
+    final String url =
+        '$baseUrl/budget/$year'; // Reemplaza con tu URL de la API
+
+    try {
+      // Realizar la solicitud GET a la API
+      final response = await http.get(Uri.parse(url));
+
+      // Verificar si la solicitud fue exitosa
+      if (response.statusCode == 200) {
+        // Decodificar la respuesta JSON
+        List<dynamic> data = json.decode(response.body);
+        // Convertir los datos en un formato adecuado (si es necesario)
+        return data.map((item) {
+          return {
+            'id': item['id'],
+            'mes': item['mes'],
+            'presupuesto': item['presupuesto'] is int
+                ? item['presupuesto']
+                    .toDouble() // Convertir int a double si es necesario
+                : double.parse(item['presupuesto']
+                    .toString()), // Caso en el que sea un string
+          };
+        }).toList();
+      } else {
+        // Si la respuesta no fue exitosa, lanzar un error
+        throw Exception('Error al cargar los datos del presupuesto');
+      }
+    } catch (e) {
+      // Manejo de errores
+      throw Exception('Error de conexión: $e');
+    }
+  }
+
+  static Future<void> saveAllBudgets(
+      int year, List<Map<String, dynamic>> budgets) async {
+    final url = Uri.parse('$baseUrl/budgets/update-all');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'year': year, 'budgets': budgets}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al guardar presupuestos: ${response.body}');
+    }
+  }
+
+  // Método para obtener datos de utilización de maquinarias
+  static Future<List<Map<String, dynamic>>> fetchUtilizacionMaquinaria(
+      String startDate, String endDate) async {
+    final data = {
+      'start_date': startDate,
+      'end_date': endDate,
+    };
+    final response = await _post('utilizacion-maquinaria', data);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // Método para obtener datos de consumo de alquiler
+  static Future<List<Map<String, dynamic>>> fetchConsumoAlquiler(
+      String startDate, String endDate) async {
+    final data = {
+      'start_date': startDate,
+      'end_date': endDate,
+    };
+    final response = await _post('consumo-alquiler', data);
+    return List<Map<String, dynamic>>.from(response);
   }
 }
