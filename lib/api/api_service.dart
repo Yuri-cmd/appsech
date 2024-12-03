@@ -562,12 +562,8 @@ class ApiService {
   }
 
   static Future<List<Map<String, dynamic>>> fetchPtariAll() async {
-    final response = await http.get(Uri.parse('$baseUrl/get-ptari'));
-    if (response.statusCode == 200) {
-      return List<Map<String, dynamic>>.from(json.decode(response.body));
-    } else {
-      throw Exception('Error al cargar los datos');
-    }
+    final jsonResponse = await _get('get-ptari');
+    return List<Map<String, dynamic>>.from(jsonResponse);
   }
 
   static Future<List<List<String>>> fetchTablePtari(int id) async {

@@ -113,44 +113,6 @@ class _DfPageState extends State<DfPage> {
               ),
             ),
             const SizedBox(height: 16.0),
-            const Text('Ubicación D1',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(
-                      label: Text('Fecha',
-                          style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(
-                      label: Text('Directo a depósito (Ton)',
-                          style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(
-                      label: Text('Ingreso desde Plataforma',
-                          style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(
-                      label: Text('Ingreso de Tierra Estabilizada (Ton)',
-                          style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(
-                      label: Text('H.H',
-                          style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-                rows: [
-                  ...dataList.map<DataRow>((item) {
-                    return DataRow(cells: [
-                      DataCell(Text(item['fecha'] ?? '')),
-                      DataCell(
-                          Text(item['directo_deposito']?.toString() ?? '0')),
-                      DataCell(
-                          Text(item['ingreso_plataforma']?.toString() ?? '0')),
-                      DataCell(Text(item['ingreso_tierra']?.toString() ?? '')),
-                      DataCell(Text(item['hh']?.toString() ?? '')),
-                    ]);
-                  }).toList(),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16.0),
             const Text('Bombeo de lixiviados',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             SingleChildScrollView(
@@ -296,6 +258,44 @@ class _DfPageState extends State<DfPage> {
                 ],
               ),
             ),
+            const Text('Ubicación D1',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(
+                      label: Text('Fecha',
+                          style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(
+                      label: Text('Directo a depósito (Ton)',
+                          style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(
+                      label: Text('Ingreso desde Plataforma',
+                          style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(
+                      label: Text('Ingreso de Tierra Estabilizada (Ton)',
+                          style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(
+                      label: Text('H.H',
+                          style: TextStyle(fontWeight: FontWeight.bold))),
+                ],
+                rows: [
+                  ...dataList.map<DataRow>((item) {
+                    return DataRow(cells: [
+                      DataCell(Text(item['fecha'] ?? '')),
+                      DataCell(
+                          Text(item['directo_deposito']?.toString() ?? '0')),
+                      DataCell(
+                          Text(item['ingreso_plataforma']?.toString() ?? '0')),
+                      DataCell(Text(item['ingreso_tierra']?.toString() ?? '')),
+                      DataCell(Text(item['hh']?.toString() ?? '')),
+                    ]);
+                  }).toList(),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16.0),
           ],
         ),
       ),

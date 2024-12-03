@@ -1,9 +1,11 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api, unused_field
 
 import 'dart:convert';
+import 'package:appsech/chart/rendimiento_combustible_chart.dart';
 import 'package:appsech/helpers/helper.dart';
 import 'package:appsech/screens/registro_form_grifo.dart';
 import 'package:appsech/theme/app_theme.dart';
+import 'package:appsech/widgets/nav_options_view.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:appsech/api/api_service.dart';
@@ -27,9 +29,19 @@ class _GrifoState extends State<Grifo> {
     _reportDataFuture = Future.value([]);
   }
 
-  Future<List<Map<String, dynamic>>> fetchData(String? maquinaria) async {
-    final response = await http.get(Uri.parse(
-        'https://magussystems.com/appsheet/public/api/get-grifo/$maquinaria'));
+  Future<List<Map<String, dynamic>>> fetchData(
+      String? tipo, String? maquinaria) async {
+    String url;
+    if (tipo == 'Compra') {
+      // Si el tipo es "Compra", trae todos los registros, incluyendo los de maquinaria null.
+      url = 'https://magussystems.com/appsheet/public/api/get-grifo/Compra';
+    } else {
+      // Si el tipo es otro, usa la maquinaria como filtro
+      url =
+          'https://magussystems.com/appsheet/public/api/get-grifo/$maquinaria';
+    }
+
+    final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
       List<Map<String, dynamic>> data =
@@ -47,11 +59,18 @@ class _GrifoState extends State<Grifo> {
     });
   }
 
-  List<Map<String, dynamic>> _filterData(
-      List<Map<String, dynamic>> data, String? selectedMaquinaria) {
+  List<Map<String, dynamic>> _filterData(List<Map<String, dynamic>> data,
+      String? selectedMaquinaria, String? tipo) {
+    if (tipo == 'Compra') {
+      // Si es "Compra", no filtrar por maquinaria
+      return data;
+    }
+
     if (selectedMaquinaria == null || selectedMaquinaria.isEmpty) {
       return data; // No se aplica filtro si no hay selección
     }
+
+    // Si no es "Compra", filtrar por maquinaria
     return data
         .where((item) =>
             item['maquinaria']?.toLowerCase() ==
@@ -59,7 +78,7 @@ class _GrifoState extends State<Grifo> {
         .toList();
   }
 
-  Future<void> _deleteRecord(int id) async {
+  Future<void> _deleteRecord(String tipo, int id) async {
     bool? confirmar = await DialogHelper.confirmarEliminar(context);
 
     if (confirmar == true) {
@@ -70,7 +89,7 @@ class _GrifoState extends State<Grifo> {
         );
         // Refresca la data después de eliminar
         setState(() {
-          _reportDataFuture = fetchData(_selectedMaquinaria);
+          _reportDataFuture = fetchData(tipo, _selectedMaquinaria);
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -96,6 +115,15 @@ class _GrifoState extends State<Grifo> {
         backgroundColor: AppTheme.primary,
         title: const Text('Grifo'),
       ),
+      endDrawer: NavOptionsView(
+        options: [
+          NavOption(
+            title: 'Rendimiento de combustible',
+            icon: Icons.pie_chart,
+            targetView: RendimientoCombustible(),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(10.0),
         child: Column(
@@ -115,27 +143,29 @@ class _GrifoState extends State<Grifo> {
                   _selectedTipo = value;
                   _selectedMaquinaria = null; // Resetea el modelo
                   _loadMaquinarias(value);
-                  _reportDataFuture = Future.value([]);
+                  _reportDataFuture = fetchData(value,
+                      _selectedMaquinaria); // Trae los datos según el tipo
                 });
               },
             ),
-            // Dropdown para seleccionar modelo
-            DropdownButtonFormField<String>(
-              value: _selectedMaquinaria,
-              decoration: const InputDecoration(labelText: 'Modelo'),
-              items: _maquinarias.map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedMaquinaria = value;
-                  _reportDataFuture = fetchData(value);
-                });
-              },
-            ),
+            // Dropdown para seleccionar modelo, solo si el tipo no es "Compra"
+            if (_selectedTipo != 'Compra')
+              DropdownButtonFormField<String>(
+                value: _selectedMaquinaria,
+                decoration: const InputDecoration(labelText: 'Modelo'),
+                items: _maquinarias.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedMaquinaria = value;
+                    _reportDataFuture = fetchData(_selectedTipo, value);
+                  });
+                },
+              ),
             // Tabla de datos con filtrado
             FutureBuilder<List<Map<String, dynamic>>>(
               future: _reportDataFuture,
@@ -148,9 +178,9 @@ class _GrifoState extends State<Grifo> {
                   return const Center(child: Text('No hay datos disponibles'));
                 }
 
-                // Filtrar los datos según el modelo seleccionado
-                final filteredData =
-                    _filterData(snapshot.data!, _selectedMaquinaria);
+                // Filtrar los datos según el modelo seleccionado o si es "Compra"
+                final filteredData = _filterData(
+                    snapshot.data!, _selectedMaquinaria, _selectedTipo);
 
                 return SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -187,7 +217,7 @@ class _GrifoState extends State<Grifo> {
                               icon: const Icon(Icons.delete),
                               onPressed: () {
                                 if (item['id'] != null) {
-                                  _deleteRecord(item['id']);
+                                  _deleteRecord(item['tipo'], item['id']);
                                 }
                               },
                             ),

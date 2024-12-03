@@ -176,7 +176,7 @@ class _RegistroFormState extends State<RegistroForm> {
                       _selectedTipo = value;
                       _selectedMaquinaria =
                           null; // Resetea la selección de maquinaria
-
+                      _selectedMaquinaria = value == 'Compra' ? 'Compra' : null;
                       // Llama a la función adecuada según el tipo seleccionado
                       _loadMaquinarias(value);
                     });
